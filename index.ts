@@ -1,5 +1,9 @@
 import 'react-native-gesture-handler';
+import 'react-native-url-polyfill/auto';
 import { registerRootComponent } from 'expo';
+
+// Initialize Supabase client early (Phase 1); not wired to auth or API yet.
+import './src/lib/supabase';
 
 import App from './App';
 

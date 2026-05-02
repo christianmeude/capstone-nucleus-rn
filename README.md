@@ -21,6 +21,7 @@ React Native/Expo mobile app for student workflows in NUcleus, integrated with t
 - Expo + React Native + TypeScript
 - React Navigation (stack + bottom tabs)
 - Axios + AsyncStorage token persistence
+- `@supabase/supabase-js` (client initialized in Phase 1; auth and data still use Express until later phases)
 
 ## Setup
 1. Install dependencies
@@ -30,7 +31,8 @@ npm install
 
 2. Configure environment
 - Copy `.env.example` to `.env`
-- Set `EXPO_PUBLIC_API_URL`
+- Set `EXPO_PUBLIC_API_URL` (Express backend; required for current login and API)
+- Set `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` (same project as the Flutter app; required for a configured Supabase client at startup). The app still uses Express for all features until the Supabase migration continues.
 
 3. Run app
 ```bash
