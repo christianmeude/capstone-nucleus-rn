@@ -104,18 +104,38 @@ flowchart LR
 
 ### Phase 2 — Auth and session
 
-✅ **COMPLETED**
+✅ **FULLY COMPLETE (stable)**
 
 - ✅ Replaced `authApi.login` with `supabase.auth.signInWithPassword`
 - ✅ Implemented strict profile resolution from `public.users` by email (fixed schema: use `first_name`, `middle_name`, `last_name`, not `full_name`)
-- ✅ Removed temporary fallback profile generation; missing `public.users` row now causes sign-in to fail with a provisioning error
+- ✅ Removed temporary fallback profile generation; missing `public.users` row now cleanly fails auth instead of fabricating a profile
 - ✅ Enforces **student-only** after profile load (checked before navigation)
-- ✅ **Bootstrap:** uses `onAuthStateChange` with AsyncStorage session persistence (no Express `/auth/me`); rejects sessions if profile row missing
+- ✅ **Bootstrap:** uses `onAuthStateChange` with AsyncStorage session persistence (no Express `/auth/me`); rejects sessions if profile row is not readable through RLS
 - ✅ **Sign out:** `supabase.auth.signOut()` with app state cleanup
 - ✅ Removed Express `authApi` dependency from AuthContext
 - ✅ Auth → `public.users` join is **email-based**, aligned with web backend provisioning contract
 
-**Exit criteria met:** Login, cold start session restore, sign-out, student gate all working with strict profile provisioning; TypeScript clean. **Fallback behavior is no longer part of the normal auth path.** All authenticated users must have a corresponding `public.users` row or login is rejected.
+**Exit criteria met:** Login, cold start session restore, sign-out, student gate, and profile lookup are all working with strict email-based resolution and RLS-backed access; TypeScript clean. **Fallback behavior is no longer part of the normal auth path.**
+
+### Phase 2 root cause resolution
+
+- The failure was **not** missing user provisioning: the `public.users` row existed.
+- The root cause was a missing **SELECT policy** on `public.users`.
+- The web backend continued to work because it uses the Supabase **service role**, which bypasses RLS.
+- The React Native app failed because it uses the Supabase **anon key**, which is governed by RLS.
+
+### Final auth architecture
+
+- Mobile uses **Supabase Auth + anon key** for sign-in and session restoration.
+- Access to `public.users` is controlled by **RLS policies**.
+- The web backend continues using the **service role** and is unaffected by mobile RLS policy changes.
+- Email-based profile resolution is the confirmed canonical join strategy for the app.
+
+### Security validation
+
+- The mobile app must **not** use the service role key.
+- The anon key + RLS model is the secure production pattern for React Native.
+- The added SELECT policy is intentionally narrow so each authenticated user can read only their own profile.
 
 ### Phase 3 — Research lists and detail
 
