@@ -104,26 +104,31 @@ flowchart LR
 
 ### Phase 2 — Auth and session
 
-- Replace `authApi.login` with `supabase.auth.signInWithPassword`.
-- On success, load **app user profile** from Postgres (e.g. `users` table) using the session’s `user.id` or email; map to `User` in `src/types/domain.ts`.
-- Enforce **student-only** after profile load (same as current `user.role` check).
-- **Bootstrap:** use `getSession()` / `onAuthStateChange` instead of calling `/auth/me` with stored custom tokens.
-- **Sign out:** `supabase.auth.signOut()` and clear any local app state.
-- Remove dependency on `authStorage` **access/refresh** keys if Supabase session fully replaces them; keep or replace `authStorage` intentionally—avoid duplicate sources of truth.
+✅ **COMPLETED**
 
-**Exit criteria:** Login, cold start session restore, sign-out, student gate match current UX; TypeScript clean.
+- ✅ Replaced `authApi.login` with `supabase.auth.signInWithPassword`
+- ✅ Implemented profile resolution from `public.users` by email (fixed schema: use `first_name`, `middle_name`, `last_name`, not `full_name`)
+- ✅ Added Supabase auth metadata fallback for profile provisioning when `public.users` row missing
+- ✅ Enforces **student-only** after profile load
+- ✅ **Bootstrap:** uses `onAuthStateChange` with AsyncStorage session persistence (no Express `/auth/me`)
+- ✅ **Sign out:** `supabase.auth.signOut()` with app state cleanup
+- ✅ Removed Express `authApi` dependency from AuthContext
+
+**Exit criteria met:** Login, cold start session restore, sign-out, student gate all working; TypeScript clean. Login test: `malfoy@students.com`.
 
 ### Phase 3 — Research lists and detail
 
-Reimplement in `src/api/research.ts` (or parallel `research.supabase.ts` merged later):
+⏳ **NEXT PRIORITY**
 
-- `getMyPapers` — align with Flutter’s “my research” query (author scoped).
+Reimplement in `src/api/research.ts`:
+
+- `getMyPapers` — align with Flutter's "my research" query (author scoped).
 - `getPublishedPapers` / `getCategories` — match published filters and category source (`research_categories` per Flutter).
 - `getResearchById` — paper row + workflow history (tables/views used by web or Flutter for workflow timeline).
 
-Stop routing these through Axios.
+Stop routing these through Axios. Current state: **screens render but show empty** (still calling Express).
 
-**Exit criteria:** Browse, My Papers, Dashboard, Research Detail load from Supabase; workflow section consistent with data availability.
+**Exit criteria:** Browse, My Papers, Dashboard, Research Detail load data from Supabase; workflow section consistent with data availability.
 
 ### Phase 4 — Views, downloads, and files
 
@@ -163,30 +168,40 @@ Replace `invitationsApi` with Supabase operations matching **web** invitation mo
 
 ## 4. API → Supabase replacement matrix
 
-Use this as a **checklist**. Fill **Supabase approach** during Phase 0 discovery with exact table/RPC names from web + Flutter.
+Use this as a **checklist**. Phases 0–2 now complete; Phase 3 begins below.
 
-| Express (current) | Role | Supabase approach (to specify) |
-|-------------------|------|----------------------------------|
-| `POST /auth/login` | Auth | `auth.signInWithPassword` + profile `select` on `users` (or equivalent) |
-| `POST /auth/refresh` | Token refresh | **Remove** (Supabase client handles refresh) |
-| `GET /auth/me` | Current user | Session + profile query |
-| `POST /auth/register` | Register | **Out of mobile V1 scope** unless product adds register screen; if unused, remove |
-| `GET /auth/submission-policy` | Submission config | **Remove** from mobile if unused (submission excluded) |
-| `GET /research/my/papers` | My papers | `select` on `research_papers` (or view) filtered by author/student |
-| `GET /research/published` | Browse | `select` with published/approved filters + search params |
-| `GET /research/categories` | Categories | `select` on `research_categories` (per Flutter) |
-| `GET /research/:id` | Detail + workflow | `select` + related workflow query or view |
-| `GET /research/:id/file` | File URL | Storage signed URL or public URL from `file` path |
-| `POST /research/:id/view` | View count | Insert/RPC as per web |
-| `POST /research/:id/download` | Download count | Insert into `paper_downloads` or RPC (per Flutter/web) |
-| `GET /research/profile/data` | Profile analytics | Optional: map to Supabase or remove if unused on student screens |
-| `GET /auth/notifications` | List | `select` on notifications table, RLS |
-| `GET /auth/notifications/unread-count` | Count | `count` query or aggregate |
-| `PATCH /auth/notifications/:id/read` | Mark read | `update` row |
-| `PATCH /auth/notifications/read-all` | Mark all | `update` batch or RPC |
-| `GET /auth/co-author-invitations` | List | `select` on invitation table(s) |
-| `POST .../:token/accept` | Accept | `update` / RPC |
-| `POST .../:token/decline` | Decline | `update` / RPC |
+**Phase 2 (Auth) — COMPLETED:**
+| Express (current) | Role | Supabase approach | Status |
+|-------------------|------|-------------------|--------|
+| `POST /auth/login` | Auth | `auth.signInWithPassword` + profile `select` on `users` | ✅ Done |
+| `POST /auth/refresh` | Token refresh | Supabase client handles refresh automatically | ✅ Done |
+| `GET /auth/me` | Current user | Session + profile query via `fetchAppUserProfile()` | ✅ Done |
+
+**Phase 3+ (Data) — IN PROGRESS:**
+
+| Express (current) | Role | Supabase approach | Status |
+|-------------------|------|-------------------|--------|
+| `POST /auth/register` | Register | **Out of mobile V1 scope** unless product adds register screen | ⏳ Not needed |
+| `GET /auth/submission-policy` | Submission config | **Remove** (submission excluded from mobile) | ⏳ Not needed |
+
+**Phase 3–4 (Research, files):**
+| Express (current) | Role | Supabase approach | Status |
+|-------------------|------|-------------------|--------|
+| `GET /research/my/papers` | My papers | `select` on `research_papers` filtered by author | ⏳ Phase 3 |
+| `GET /research/published` | Browse | `select` with published/approved filters | ⏳ Phase 3 |
+| `GET /research/categories` | Categories | `select` on `research_categories` | ⏳ Phase 3 |
+| `GET /research/:id` | Detail + workflow | `select` + workflow query or view | ⏳ Phase 3 |
+| `GET /research/:id/file` | File URL | Storage signed URL | ⏳ Phase 4 |
+| `POST /research/:id/view` | View tracking | Insert/RPC per web | ⏳ Phase 4 |
+| `POST /research/:id/download` | Download tracking | Insert `paper_downloads` or RPC | ⏳ Phase 4 |
+| `GET /research/profile/data` | Profile analytics | Optional: remove if unused | ⏳ Later |
+| `GET /auth/notifications` | List | `select` on notifications table | ⏳ Phase 5 |
+| `GET /auth/notifications/unread-count` | Count | `count()` query | ⏳ Phase 5 |
+| `PATCH /auth/notifications/:id/read` | Mark read | `update` row | ⏳ Phase 5 |
+| `PATCH /auth/notifications/read-all` | Mark all | `update` batch or RPC | ⏳ Phase 5 |
+| `GET /auth/co-author-invitations` | List | `select` on invitation table | ⏳ Phase 6 |
+| `POST .../:token/accept` | Accept | `update` / RPC | ⏳ Phase 6 |
+| `POST .../:token/decline` | Decline | `update` / RPC | ⏳ Phase 6 |
 
 ---
 
@@ -252,15 +267,14 @@ Optional later: unit tests for Supabase facade functions with mocked client—on
 
 | File | Migration relevance |
 |------|---------------------|
-| `src/api/http.ts` | Remove after migration |
-| `src/api/auth.ts` | Rewrite to Supabase |
-| `src/api/research.ts` | Rewrite to Supabase |
-| `src/api/notifications.ts` | Rewrite to Supabase |
-| `src/api/invitations.ts` | Rewrite to Supabase |
-| `src/context/AuthContext.tsx` | Rewire internals |
-| `src/storage/authStorage.ts` | Shrink or remove |
-| `src/config/env.ts` | Add Supabase env vars |
-| `TRANSITION_HANDOFF.md` | Legacy Express route list |
+| `src/api/http.ts` | Remove after migration (Phase 7) |
+| `src/api/auth.ts` | ✅ No longer used (Phase 2 complete) |
+| `src/api/research.ts` | Rewrite to Supabase (Phase 3) |
+| `src/api/notifications.ts` | Rewrite to Supabase (Phase 5) |
+| `src/api/invitations.ts` | Rewrite to Supabase (Phase 6) |
+| `src/context/AuthContext.tsx` | ✅ Rewired to Supabase (Phase 2 complete) |
+| `src/storage/authStorage.ts` | Shrink or remove (Phase 7) |
+| `src/config/env.ts` | ✅ Updated with Supabase env vars (Phase 2 complete) |
 
 ---
 

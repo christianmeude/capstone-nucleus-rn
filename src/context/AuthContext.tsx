@@ -1,8 +1,6 @@
-import axios from 'axios';
 import { Session } from '@supabase/supabase-js';
 import { createContext, ReactNode, useContext, useEffect, useMemo, useState } from 'react';
-import { authApi } from '../api/auth';
-import { getApiErrorMessage } from '../api/helpers';
+import { fetchAppUserProfile } from '../auth/fetchAppUserProfile';
 import { mapSupabaseAuthError } from '../auth/mapSupabaseAuthError';
 import { supabase } from '../lib/supabase';
 import { clearAuthTokens } from '../storage/authStorage';
@@ -23,33 +21,19 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-/**
- * Load app profile after Supabase Auth via Express GET /auth/me.
- * The backend uses the service role (or equivalent) and bypasses RLS on `public.users`.
- * Direct Supabase `from('users')` reads from the mobile anon key often return no row because RLS
- * policies were tightened (see web migration harden_rls_views_and_functions.sql).
- */
-async function loadProfileFromBackend(): Promise<User | null> {
-  const user = await authApi.getCurrentUser();
-  return user ?? null;
-}
-
-async function applySessionToUser(session: Session | null): Promise<User | null> {
+async function loadProfileFromSession(session: Session | null): Promise<User | null> {
   if (!session?.user) {
     return null;
   }
 
-  try {
-    return await loadProfileFromBackend();
-  } catch (error) {
-    const status = axios.isAxiosError(error) ? error.response?.status : undefined;
-    if (status === 401 || status === 404) {
-      await supabase.auth.signOut();
-      return null;
-    }
-    // Network or 5xx: keep Supabase session so the user can retry when the API is reachable again.
-    return null;
+  const { user } = await fetchAppUserProfile(session.user, { allowFallback: false });
+
+  if (user) {
+    return user;
   }
+
+  await supabase.auth.signOut();
+  return null;
 }
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -60,7 +44,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let cancelled = false;
 
     const finishApply = async (session: Session | null) => {
-      const nextUser = await applySessionToUser(session);
+      const nextUser = await loadProfileFromSession(session);
       if (cancelled) return;
       setUser(nextUser);
     };
@@ -120,29 +104,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       try {
-        const profile = await loadProfileFromBackend();
+        const profileResult = await fetchAppUserProfile(data.session.user);
+        console.log('[AuthContext.signIn] Profile result:', profileResult);
+        
+        const profile = profileResult.user;
         if (!profile) {
           await supabase.auth.signOut();
+          const errorMsg = profileResult.message || 'Unable to load your profile. Verify your account is provisioned in the system.';
+          console.error('[AuthContext.signIn] Profile load failed:', errorMsg);
           return {
             success: false,
-            error: 'Unable to load your profile. Please try again.',
+            error: errorMsg,
           };
         }
         setUser(profile);
         return { success: true };
       } catch (profileError) {
         await supabase.auth.signOut();
-        const status = axios.isAxiosError(profileError) ? profileError.response?.status : undefined;
-        if (status === 404) {
-          return {
-            success: false,
-            error:
-              'Your account is not provisioned in the application database. Please contact support.',
-          };
-        }
+        const message = profileError instanceof Error ? profileError.message : 'Unable to complete sign in.';
+        console.error('[AuthContext.signIn] Caught profile error:', message);
         return {
           success: false,
-          error: getApiErrorMessage(profileError, 'Unable to complete sign in.'),
+          error: message,
         };
       }
     } catch (_error) {
@@ -161,13 +144,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const refreshCurrentUser = async () => {
     try {
-      const profile = await loadProfileFromBackend();
+      const { data: { session } } = await supabase.auth.getSession();
+      const profile = await loadProfileFromSession(session);
       setUser(profile);
-    } catch (error) {
-      const status = axios.isAxiosError(error) ? error.response?.status : undefined;
-      if (status === 401 || status === 404) {
-        await supabase.auth.signOut();
-      }
+    } catch (_error) {
+      await supabase.auth.signOut();
       setUser(null);
     }
   };

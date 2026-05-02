@@ -78,13 +78,13 @@ The app should use `@supabase/supabase-js` with session persistence appropriate 
 
 ### Historical architecture (being phased out)
 
-Previously (and as still reflected in older docs such as `TRANSITION_HANDOFF.md`):
+Previously (and as described in legacy handoff notes):
 
 ```
 React Native app  →  Express API  →  Supabase
 ```
 
-That path implied custom **`/auth/login`**, **`/auth/refresh`**, **`/auth/me`**, and research/notification routes. The migration removes **dependence on Express availability** for the mobile client.
+That path implied custom **`/auth/login`**, **`/auth/refresh`**, **`/auth/me`**, and research/notification routes. Phase 2 of the migration removes **dependence on Express availability** for the mobile client; auth now uses Supabase directly.
 
 ```mermaid
 flowchart LR
