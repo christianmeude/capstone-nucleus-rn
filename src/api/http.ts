@@ -1,20 +1,10 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { API_BASE_URL } from '../config/env';
-import {
-  clearAuthTokens,
-  getAccessToken,
-  getRefreshToken,
-  setAuthTokens,
-} from '../storage/authStorage';
+import { supabase } from '../lib/supabase';
 
 type RetriableConfig = InternalAxiosRequestConfig & {
   _retry?: boolean;
 };
-
-interface RefreshResponse {
-  token?: string;
-  refreshToken?: string;
-}
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -24,27 +14,22 @@ const api = axios.create({
   },
 });
 
-let refreshPromise: Promise<string | null> | null = null;
+let refreshPromise: Promise<boolean> | null = null;
 
-const refreshSession = async (refreshToken: string) => {
-  const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
-    refreshToken,
-  });
-
-  const payload = (response?.data?.data ?? response?.data ?? {}) as RefreshResponse;
-  const nextAccessToken = payload.token;
-  if (!nextAccessToken) return null;
-
-  const nextRefreshToken = payload.refreshToken || refreshToken;
-  await setAuthTokens(nextAccessToken, nextRefreshToken);
-  return nextAccessToken;
+const refreshSupabaseSession = async (): Promise<boolean> => {
+  const { data, error } = await supabase.auth.refreshSession();
+  if (error || !data.session?.access_token) {
+    return false;
+  }
+  return true;
 };
 
 api.interceptors.request.use(async (config) => {
-  const token = await getAccessToken();
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
   if (token) {
     config.headers = config.headers || {};
-    (config.headers as any).Authorization = `Bearer ${token}`;
+    (config.headers as Record<string, string>).Authorization = `Bearer ${token}`;
   }
 
   return config;
@@ -68,33 +53,33 @@ api.interceptors.response.use(
       throw error;
     }
 
-    const refreshToken = await getRefreshToken();
-    if (!refreshToken) {
-      await clearAuthTokens();
-      throw error;
-    }
-
     originalRequest._retry = true;
 
     try {
       if (!refreshPromise) {
-        refreshPromise = refreshSession(refreshToken).finally(() => {
+        refreshPromise = refreshSupabaseSession().finally(() => {
           refreshPromise = null;
         });
       }
 
-      const nextAccessToken = await refreshPromise;
-      if (!nextAccessToken) {
-        await clearAuthTokens();
+      const refreshed = await refreshPromise;
+      if (!refreshed) {
+        await supabase.auth.signOut();
+        throw error;
+      }
+
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) {
+        await supabase.auth.signOut();
         throw error;
       }
 
       originalRequest.headers = originalRequest.headers || {};
-      (originalRequest.headers as any).Authorization = `Bearer ${nextAccessToken}`;
+      (originalRequest.headers as Record<string, string>).Authorization = `Bearer ${token}`;
 
       return api(originalRequest);
     } catch (refreshError) {
-      await clearAuthTokens();
       throw refreshError;
     }
   }

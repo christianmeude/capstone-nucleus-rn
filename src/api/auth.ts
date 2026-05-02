@@ -2,6 +2,11 @@ import api from './http';
 import { unwrapApiData } from './helpers';
 import { SubmissionPolicy, User } from '../types/domain';
 
+/**
+ * Auth REST helpers. Login/session/me are legacy Express routes; the app uses Supabase Auth in AuthContext.
+ * `getCurrentUser` may still work if called with a Supabase JWT via Axios (same bearer as other APIs).
+ */
+
 interface AuthPayload {
   token: string;
   refreshToken: string;
