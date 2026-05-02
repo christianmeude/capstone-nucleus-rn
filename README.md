@@ -1,55 +1,66 @@
-# NUcleus React Native (Student)
+# NUcleus Mobile
 
-React Native/Expo mobile app for student workflows in NUcleus, integrated with the existing Express backend.
+NUcleus Mobile is a React Native (Expo) app for enrolled students at National University — Dasmariñas. It provides a mobile interface for browsing research, reading paper details, and managing student notifications and invitations.
 
-## Implemented (Initial)
-- Student login (token + refresh session handling)
-- Student-only route guard (non-student accounts blocked)
-- Dashboard (status summaries + recent papers)
-- My Papers (filters + search)
-- Repository browse (published papers + category filter)
-- Research Detail (workflow timeline + PDF open)
-- Notifications (unread tracking, mark read, mark all read)
-- Co-author Invitations (list, accept, decline)
+## Features
 
-## Explicitly Excluded
-- Submit research flow
-- Draft saving/updating/deleting
-- Faculty/Dean/Program Chair/Staff/Admin features
+- Student authentication and session persistence
+- Browse published research
+- View research details and PDF links
+- Access My Papers and dashboard summaries
+- Manage notifications and co-author invitations
 
 ## Tech Stack
-- Expo + React Native + TypeScript
-- React Navigation (stack + bottom tabs)
-- Axios + AsyncStorage token persistence
-- `@supabase/supabase-js` (client initialized in Phase 1; auth and data still use Express until later phases)
+
+- React Native (Expo)
+- TypeScript
+- Supabase (Auth, Database, Storage)
+- React Navigation
+- AsyncStorage
 
 ## Setup
+
 1. Install dependencies
+
 ```bash
 npm install
 ```
 
-2. Configure environment
-- Copy `.env.example` to `.env`
-- Set `EXPO_PUBLIC_API_URL` (Express backend; required for current login and API)
-- Set `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` (same project as the Flutter app; required for a configured Supabase client at startup). The app still uses Express for all features until the Supabase migration continues.
+2. Configure environment variables
 
-3. Run app
+Create a `.env` file from `.env.example` and set:
+
+```bash
+EXPO_PUBLIC_SUPABASE_URL=your-supabase-url
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+```
+
+3. Run the app
+
 ```bash
 npm run start
 ```
 
-## Backend Compatibility
-Expected backend base URL shape:
-- `http://<host>:5000/api`
+## Project Structure
 
-Used endpoint groups:
-- `/auth/login`, `/auth/refresh`, `/auth/me`
-- `/research/my/papers`, `/research/published`, `/research/categories`
-- `/research/:id`, `/research/:id/file`, `/research/:id/view`, `/research/:id/download`
-- `/auth/notifications`, `/auth/notifications/unread-count`, `/auth/notifications/:id/read`, `/auth/notifications/read-all`
-- `/auth/co-author-invitations`, `/auth/co-author-invitations/:token/accept`, `/auth/co-author-invitations/:token/decline`
+```text
+src/
+  api/
+  auth/
+  config/
+  context/
+  lib/
+  navigation/
+  screens/
+  storage/
+  types/
+  utils/
+docs/
+  PROJECT_CONTEXT.md
+  IMPLEMENTATION_PLAN.md
+```
 
-## Notes
-- This app is intentionally scoped to student workflows and read-first behavior.
-- Data parity is maintained by consuming the same Express API used by the web app.
+## Documentation
+
+- [PROJECT_CONTEXT.md](./docs/PROJECT_CONTEXT.md)
+- [IMPLEMENTATION_PLAN.md](./docs/IMPLEMENTATION_PLAN.md)
