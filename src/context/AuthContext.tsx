@@ -26,7 +26,7 @@ async function loadProfileFromSession(session: Session | null): Promise<User | n
     return null;
   }
 
-  const { user } = await fetchAppUserProfile(session.user, { allowFallback: false });
+  const { user } = await fetchAppUserProfile(session.user);
 
   if (user) {
     return user;

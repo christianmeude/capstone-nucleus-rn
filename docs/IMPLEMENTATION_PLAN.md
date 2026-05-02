@@ -107,14 +107,15 @@ flowchart LR
 ✅ **COMPLETED**
 
 - ✅ Replaced `authApi.login` with `supabase.auth.signInWithPassword`
-- ✅ Implemented profile resolution from `public.users` by email (fixed schema: use `first_name`, `middle_name`, `last_name`, not `full_name`)
-- ✅ Added Supabase auth metadata fallback for profile provisioning when `public.users` row missing
-- ✅ Enforces **student-only** after profile load
-- ✅ **Bootstrap:** uses `onAuthStateChange` with AsyncStorage session persistence (no Express `/auth/me`)
+- ✅ Implemented strict profile resolution from `public.users` by email (fixed schema: use `first_name`, `middle_name`, `last_name`, not `full_name`)
+- ✅ Removed temporary fallback profile generation; missing `public.users` row now causes sign-in to fail with a provisioning error
+- ✅ Enforces **student-only** after profile load (checked before navigation)
+- ✅ **Bootstrap:** uses `onAuthStateChange` with AsyncStorage session persistence (no Express `/auth/me`); rejects sessions if profile row missing
 - ✅ **Sign out:** `supabase.auth.signOut()` with app state cleanup
 - ✅ Removed Express `authApi` dependency from AuthContext
+- ✅ Auth → `public.users` join is **email-based**, aligned with web backend provisioning contract
 
-**Exit criteria met:** Login, cold start session restore, sign-out, student gate all working; TypeScript clean. Login test: `malfoy@students.com`.
+**Exit criteria met:** Login, cold start session restore, sign-out, student gate all working with strict profile provisioning; TypeScript clean. **Fallback behavior is no longer part of the normal auth path.** All authenticated users must have a corresponding `public.users` row or login is rejected.
 
 ### Phase 3 — Research lists and detail
 

@@ -1,7 +1,7 @@
 /**
  * Loads `public.users` for the signed-in Supabase Auth user by email.
- * If the profile row is missing, fall back to a minimal profile derived from the
- * authenticated Supabase user metadata so the app can still complete login.
+ * The application profile row must exist; no fallback profile generation is supported.
+ * This ensures strict provisioning requirements and alignment with the web backend.
  */
 import { supabase } from '../lib/supabase';
 import { User, UserRole } from '../types/domain';
@@ -33,11 +33,9 @@ function buildFullName(row: {
 }
 
 export async function fetchAppUserProfile(
-  authUser: SupabaseAuthUserSnapshot,
-  options?: { allowFallback?: boolean }
+  authUser: SupabaseAuthUserSnapshot
 ): Promise<FetchAppUserProfileResult> {
   const authEmail = authUser.email?.trim().toLowerCase();
-  const allowFallback = options?.allowFallback ?? true;
 
   if (!authEmail) {
     console.warn('[fetchAppUserProfile] No email provided for profile lookup');
@@ -79,39 +77,11 @@ export async function fetchAppUserProfile(
     }
 
     if (!data) {
-      if (!allowFallback) {
-        console.warn(`[fetchAppUserProfile] No user found with email: ${normalized}. Not using fallback during bootstrap.`);
-        return {
-          user: null,
-          error: 'not_provisioned',
-          message: 'User profile not found in the application database.',
-        };
-      }
-
-      console.warn(`[fetchAppUserProfile] No user found with email: ${normalized}. Falling back to Supabase auth metadata.`);
-
-      const metadata = authUser.user_metadata ?? {};
-      const fallbackUser: User = {
-        id: authUser.id,
-        email: normalized,
-        fullName: buildFullName({
-          first_name: typeof metadata.first_name === 'string' ? metadata.first_name : undefined,
-          middle_name: typeof metadata.middle_name === 'string' ? metadata.middle_name : undefined,
-          last_name: typeof metadata.last_name === 'string' ? metadata.last_name : undefined,
-          email: normalized,
-        }),
-        role: (typeof metadata.role === 'string' ? metadata.role : 'student') as UserRole,
-        department: typeof metadata.department === 'string' ? metadata.department : null,
-        departmentId: typeof metadata.department_id === 'string' ? metadata.department_id : null,
-        program: typeof metadata.program === 'string' ? metadata.program : null,
-        programId: typeof metadata.program_id === 'string' ? metadata.program_id : null,
-        createdAt: authUser.created_at,
-      };
-
+      console.warn(`[fetchAppUserProfile] No user found with email: ${normalized}. Account is not provisioned in the application database.`);
       return {
-        user: fallbackUser,
+        user: null,
         error: 'not_provisioned',
-        message: 'User profile not found in the application database. Using auth session fallback.',
+        message: 'Your account has not been provisioned. Please contact your administrator or check that you registered with the correct email address.',
       };
     }
 
