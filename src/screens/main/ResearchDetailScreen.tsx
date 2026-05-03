@@ -41,12 +41,6 @@ export const ResearchDetailScreen = () => {
         const detail = await researchApi.getResearchById(paperId);
         setPaper(detail.paper);
         setWorkflow(detail.workflowHistory || []);
-
-        try {
-          await researchApi.trackView(paperId);
-        } catch {
-          // Ignore tracking errors so detail page still loads.
-        }
       } catch (_error) {
         setError('Unable to load paper details.');
       } finally {

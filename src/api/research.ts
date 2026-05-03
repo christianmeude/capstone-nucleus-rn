@@ -62,6 +62,7 @@ interface ResearchPaperRow {
   updated_at?: string | null;
   submission_date?: string | null;
   published_date?: string | null;
+  file_url?: string | null;
   rejection_reason?: string | null;
   revision_notes?: string | null;
   view_count?: number | null;
@@ -93,6 +94,7 @@ const PAPER_SELECT = `
   updated_at,
   submission_date,
   published_date,
+  file_url,
   rejection_reason,
   revision_notes,
   view_count,
@@ -216,6 +218,7 @@ function toResearchPaper(row: ResearchPaperRow): ResearchPaper {
     updated_at: row.updated_at ?? undefined,
     submission_date: row.submission_date ?? undefined,
     published_date: row.published_date ?? undefined,
+    file_url: row.file_url ?? null,
     revision_notes: row.revision_notes ?? null,
     rejection_reason: row.rejection_reason ?? null,
     view_count: row.view_count ?? undefined,
@@ -296,6 +299,36 @@ async function resolveCurrentStudentProfile() {
   }
 
   return profileResult.user;
+}
+
+function extractStoragePathFromUrl(fileUrl?: string | null) {
+  if (!fileUrl) return null;
+
+  const trimmedValue = fileUrl.trim();
+  if (!trimmedValue) return null;
+
+  if (!/^https?:\/\//i.test(trimmedValue)) {
+    return trimmedValue.replace(/^\/+/, '') || null;
+  }
+
+  try {
+    const parsedUrl = new URL(trimmedValue);
+    const marker = '/object/public/research-papers/';
+    const markerIndex = parsedUrl.pathname.indexOf(marker);
+
+    if (markerIndex >= 0) {
+      return parsedUrl.pathname.slice(markerIndex + marker.length).replace(/^\//, '') || null;
+    }
+
+    const pathSegments = parsedUrl.pathname.split('/research-papers/');
+    if (pathSegments.length > 1) {
+      return pathSegments[1].replace(/^\//, '') || null;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
 }
 
 async function loadResearchRows(selectQuery: string, filters?: ResearchListParams) {
@@ -394,11 +427,60 @@ export const researchApi = {
     } satisfies ResearchDetailPayload;
   },
 
-  getResearchFile: async (_paperId: string) => {
+  getResearchFile: async (paperId: string) => {
+    await resolveCurrentStudentProfile();
+
+    // Load paper metadata to resolve file path.
+    const { data: paperRow, error: paperError } = await supabase
+      .from('research_papers')
+      .select('id, file_url')
+      .eq('id', paperId)
+      .maybeSingle();
+
+    if (paperError) {
+      throw new Error(paperError.message || 'Unable to load paper.');
+    }
+
+    if (!paperRow) {
+      throw new Error('Paper not found.');
+    }
+
+    const storagePath = extractStoragePathFromUrl(paperRow.file_url);
+
+    // If we have a storage path, create a signed URL; otherwise use file_url as fallback.
+    if (storagePath) {
+      try {
+        const signedUrlData = await supabase.storage
+          .from('research-papers')
+          .createSignedUrl(storagePath, 3600);
+
+        if (signedUrlData.error) {
+          throw signedUrlData.error;
+        }
+
+        return {
+          fileUrl: signedUrlData.data?.signedUrl || '',
+          isSigned: true,
+          source: 'supabase-storage',
+          storagePath,
+        } satisfies ResearchFilePayload;
+      } catch (error) {
+        console.warn('[getResearchFile] Signed URL creation failed:', error);
+      }
+    }
+
+    if (paperRow.file_url) {
+      return {
+        fileUrl: paperRow.file_url,
+        isSigned: false,
+        source: 'public-url',
+      } satisfies ResearchFilePayload;
+    }
+
     return {
       fileUrl: '',
       isSigned: false,
-      source: 'phase-4-placeholder',
+      source: 'no-file',
     } satisfies ResearchFilePayload;
   },
 
