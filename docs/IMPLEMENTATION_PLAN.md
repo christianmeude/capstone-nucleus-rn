@@ -139,17 +139,16 @@ flowchart LR
 
 ### Phase 3 — Research lists and detail
 
-⏳ **NEXT PRIORITY**
+✅ **COMPLETED (stable)**
 
-Reimplement in `src/api/research.ts`:
+- ✅ Replaced `researchApi` Express calls with a Supabase facade for research lists and detail.
+- ✅ `getMyPapers` scopes papers to the signed-in student by author.
+- ✅ `getPublishedPapers` returns browseable papers with `approved` and `published` statuses.
+- ✅ `getCategories` loads category labels from `research_categories`.
+- ✅ `getResearchById` returns paper detail plus `approval_workflow` history.
+- ✅ Phase 4 file URL and view/download tracking remain deferred; placeholder/no-op behavior is kept for now.
 
-- `getMyPapers` — align with Flutter's "my research" query (author scoped).
-- `getPublishedPapers` / `getCategories` — match published filters and category source (`research_categories` per Flutter).
-- `getResearchById` — paper row + workflow history (tables/views used by web or Flutter for workflow timeline).
-
-Stop routing these through Axios. Current state: **screens render but show empty** (still calling Express).
-
-**Exit criteria:** Browse, My Papers, Dashboard, Research Detail load data from Supabase; workflow section consistent with data availability.
+**Exit criteria met:** Browse, My Papers, Dashboard, and Research Detail now load from Supabase. TypeScript is clean, and research data is no longer routed through Express.
 
 ### Phase 4 — Views, downloads, and files
 
@@ -189,7 +188,7 @@ Replace `invitationsApi` with Supabase operations matching **web** invitation mo
 
 ## 4. API → Supabase replacement matrix
 
-Use this as a **checklist**. Phases 0–2 now complete; Phase 3 begins below.
+Use this as a **checklist**. Phases 0–3 now complete; Phase 4 begins below.
 
 **Phase 2 (Auth) — COMPLETED:**
 | Express (current) | Role | Supabase approach | Status |
@@ -208,10 +207,10 @@ Use this as a **checklist**. Phases 0–2 now complete; Phase 3 begins below.
 **Phase 3–4 (Research, files):**
 | Express (current) | Role | Supabase approach | Status |
 |-------------------|------|-------------------|--------|
-| `GET /research/my/papers` | My papers | `select` on `research_papers` filtered by author | ⏳ Phase 3 |
-| `GET /research/published` | Browse | `select` with published/approved filters | ⏳ Phase 3 |
-| `GET /research/categories` | Categories | `select` on `research_categories` | ⏳ Phase 3 |
-| `GET /research/:id` | Detail + workflow | `select` + workflow query or view | ⏳ Phase 3 |
+| `GET /research/my/papers` | My papers | `select` on `research_papers` filtered by author | ✅ Done |
+| `GET /research/published` | Browse | `select` with published/approved filters | ✅ Done |
+| `GET /research/categories` | Categories | `select` on `research_categories` | ✅ Done |
+| `GET /research/:id` | Detail + workflow | `select` + workflow query or view | ✅ Done |
 | `GET /research/:id/file` | File URL | Storage signed URL | ⏳ Phase 4 |
 | `POST /research/:id/view` | View tracking | Insert/RPC per web | ⏳ Phase 4 |
 | `POST /research/:id/download` | Download tracking | Insert `paper_downloads` or RPC | ⏳ Phase 4 |
