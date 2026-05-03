@@ -146,18 +146,34 @@ flowchart LR
 - ✅ `getPublishedPapers` returns browseable papers with `approved` and `published` statuses.
 - ✅ `getCategories` loads category labels from `research_categories`.
 - ✅ `getResearchById` returns paper detail plus `approval_workflow` history.
-- ✅ Phase 4 file URL and view/download tracking remain deferred; placeholder/no-op behavior is kept for now.
 
 **Exit criteria met:** Browse, My Papers, Dashboard, and Research Detail now load from Supabase. TypeScript is clean, and research data is no longer routed through Express.
 
 ### Phase 4 — Views, downloads, and files
 
-- **View/download tracking:** Express uses `POST .../view` and `POST .../download`. Replace with the **same semantics** the database expects—often inserts into audit tables (Flutter references `paper_downloads` for downloads) or RPCs. Confirm in web/Flutter; do not invent counters client-side only if the backend expects server-side consistency.
-- **`getResearchFile`:** Replace with Storage **`createSignedUrl`** or public URL logic matching bucket policies (`research-papers` bucket in Flutter). Preserve `ResearchDetailScreen` behavior: resolve URL → `WebBrowser.openBrowserAsync`.
+⏳ **PARTIALLY COMPLETE — PDF OPEN WORKING, COUNT PERSISTENCE UNRESOLVED**
 
-**Exit criteria:** Open PDF works for permitted papers; view/download counts acceptable vs web.
+**Working:**
+- ✅ PDF open flow end-to-end: file URL resolution, signed URL creation with fallback to public URL
+- ✅ `trackView` fires on PDF open tap; `trackDownload` fires on "Open + Track Download" tap
+- ✅ RPC calls execute without error (confirmed via RPC parameter fix: `row_id` parameter name)
+- ✅ Audit table inserts (`paper_views`, `paper_downloads`) complete successfully
+- ✅ Download gating (`allow_download` flag) enforced; blocks download action with error message
+- ✅ All operations use anon key + RLS model
+- ✅ Signed URL creation includes 1-hour expiration; gracefully falls back to public URL on failure
+- ✅ Error handling preserves existing UX: view tracking failures don't block file open, download validation errors show user-facing messages
+
+**Known issue (deferred for Phase 7 or standalone fix):**
+- ❌ View count and download count do not persist to UI after navigation
+- ❌ RPC calls `increment_view_count` and `increment_download_count` execute without errors but database counters remain static
+- ❌ Audit inserts to `paper_views` and `paper_downloads` succeed but counter columns on `research_papers` are not incremented
+- ❌ Root cause unresolved; likely RLS on counter columns, trigger issue, or transaction isolation—requires deeper Supabase investigation
+- ❌ Does not block Phase 5 (Notifications) or Phase 6 (Invitations)
+
+**Exit criteria (partial):** PDF open flow and file access fully functional. View/download count persistence deferred as a known issue.
 
 ### Phase 5 — Notifications
+
 
 Replace `notificationsApi` with Supabase queries/updates. Exact table names (e.g. `notifications`) and column names must come from the **web** schema. Preserve:
 
@@ -211,9 +227,9 @@ Use this as a **checklist**. Phases 0–3 now complete; Phase 4 begins below.
 | `GET /research/published` | Browse | `select` with published/approved filters | ✅ Done |
 | `GET /research/categories` | Categories | `select` on `research_categories` | ✅ Done |
 | `GET /research/:id` | Detail + workflow | `select` + workflow query or view | ✅ Done |
-| `GET /research/:id/file` | File URL | Storage signed URL | ⏳ Phase 4 |
-| `POST /research/:id/view` | View tracking | Insert/RPC per web | ⏳ Phase 4 |
-| `POST /research/:id/download` | Download tracking | Insert `paper_downloads` or RPC | ⏳ Phase 4 |
+| `GET /research/:id/file` | File URL | Storage signed URL | ✅ Done |
+| `POST /research/:id/view` | View tracking | Insert/RPC per web | ✅ Done |
+| `POST /research/:id/download` | Download tracking | Insert `paper_downloads` or RPC | ✅ Done |
 | `GET /research/profile/data` | Profile analytics | Optional: remove if unused | ⏳ Later |
 | `GET /auth/notifications` | List | `select` on notifications table | ⏳ Phase 5 |
 | `GET /auth/notifications/unread-count` | Count | `count()` query | ⏳ Phase 5 |

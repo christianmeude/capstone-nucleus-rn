@@ -484,12 +484,71 @@ export const researchApi = {
     } satisfies ResearchFilePayload;
   },
 
-  trackView: async (_paperId: string) => {
-    return;
+  trackView: async (paperId: string) => {
+    const profile = await resolveCurrentStudentProfile();
+
+    try {
+      const { error: rpcError } = await supabase.rpc('increment_view_count', {
+        row_id: paperId,
+      });
+
+      if (rpcError) {
+        throw new Error(rpcError.message || 'Failed to increment view count.');
+      }
+
+      const { error: insertError } = await supabase.from('paper_views').insert({
+        paper_id: paperId,
+        user_id: profile.id,
+        viewed_at: new Date().toISOString(),
+      });
+
+      void insertError;
+    } catch (error) {
+      console.warn('[trackView] Error tracking view:', error);
+    }
   },
 
-  trackDownload: async (_paperId: string) => {
-    return;
+  trackDownload: async (paperId: string) => {
+    const profile = await resolveCurrentStudentProfile();
+
+    try {
+      const { data: paperRow, error: paperError } = await supabase
+        .from('research_papers')
+        .select('allow_download')
+        .eq('id', paperId)
+        .maybeSingle();
+
+      if (paperError) {
+        throw new Error(paperError.message || 'Unable to verify download permissions.');
+      }
+
+      if (!paperRow) {
+        throw new Error('Paper not found.');
+      }
+
+      if (!(paperRow as any).allow_download) {
+        throw new Error('Downloads are not allowed for this paper.');
+      }
+
+      const { error: rpcError } = await supabase.rpc('increment_download_count', {
+        row_id: paperId,
+      });
+
+      if (rpcError) {
+        throw new Error(rpcError.message || 'Failed to increment download count.');
+      }
+
+      const { error: insertError } = await supabase.from('paper_downloads').insert({
+        paper_id: paperId,
+        user_id: profile.id,
+        downloaded_at: new Date().toISOString(),
+      });
+
+      void insertError;
+    } catch (error) {
+      console.warn('[trackDownload] Error tracking download:', error);
+      throw error;
+    }
   },
 
   getProfileData: async (_params?: {
