@@ -174,14 +174,67 @@ flowchart LR
 
 ### Phase 5 — Notifications
 
+✅ **COMPLETED (stable)**
 
-Replace `notificationsApi` with Supabase queries/updates. Exact table names (e.g. `notifications`) and column names must come from the **web** schema. Preserve:
+- ✅ Replaced `notificationsApi` Express calls with a Supabase facade backed by the `notifications` table
+- ✅ `getNotifications` / `getMine` loads the signed-in student’s notifications ordered by `created_at` descending with a default limit of 100
+- ✅ `getUnreadCount` returns the signed-in student’s unread notification count
+- ✅ `markAsRead` / `markRead` updates a single notification row by id for the signed-in student
+- ✅ `markAllAsRead` / `markAllRead` updates all unread notifications for the signed-in student
+- ✅ `NotificationsScreen` continues to show unread indicators and mark-read actions without Express dependencies
+- ✅ RLS SELECT and UPDATE policies are already in place for `notifications`
 
-- List with limit
-- Unread count
-- Mark one read, mark all read
+**Exit criteria met:** `NotificationsScreen` loads from Supabase, unread count displays correctly, mark-read actions persist, and no notification path relies on Express.
 
-**Exit criteria:** `NotificationsScreen` behavior matches pre-migration UX.
+**Post-implementation discoveries (important):**
+
+- **Root cause (UUID mismatch):** The `notifications` table stores `user_id` using the `public.users` UUID, while `auth.uid()` returns the `auth.users` UUID. Existing RLS policies that compared `user_id = auth.uid()` therefore returned no rows on mobile, producing silently empty result sets even though RPCs/queries executed without error.
+
+- **Fix applied:** Replaced `notifications` RLS policies with email-based resolution consistent with Phase 2 auth patterns. The new policies resolve the `public.users` id by matching `public.users.email = auth.email()` before comparing to `user_id`. The original policies were saved to `docs/sql/notifications_rls_original.sql` before replacement.
+
+Example of the applied SQL (already applied in the environment):
+
+```sql
+DROP POLICY "Users can read own notifications" ON public.notifications;
+
+CREATE POLICY "Users can read own notifications"
+ON public.notifications
+FOR SELECT
+USING (
+  user_id = (
+    SELECT u.id FROM public.users u
+    WHERE u.email = auth.email()
+  )
+);
+
+DROP POLICY "Users can update own notifications" ON public.notifications;
+
+CREATE POLICY "Users can update own notifications"
+ON public.notifications
+FOR UPDATE
+USING (
+  user_id = (
+    SELECT u.id FROM public.users u
+    WHERE u.email = auth.email()
+  )
+)
+WITH CHECK (
+  user_id = (
+    SELECT u.id FROM public.users u
+    WHERE u.email = auth.email()
+  )
+);
+```
+
+- **Validation:** Notifications now load per-user, unread counts are accurate, `markAsRead` and `markAllAsRead` persist correctly, and the `NotificationsScreen` no longer depends on Express.
+
+- **Known limitation (systemic):** The same UUID mismatch pattern exists in `research_papers` RLS. The `Combined research read access` policy currently checks `auth.uid() = author_id`, but `author_id` stores `public.users` UUIDs. This means student-scoped selects only succeed when `status = 'approved'` (public), and intermediate workflow states (adviser/dean approvals) fail to load. This is a schema-level inconsistency that requires coordination with the web/backend team to resolve; it is outside the scope of this Phase 5 work and is parked for Phase 7 or a standalone fix.
+
+**Notes / next steps:**
+
+- The original RLS SQL for `notifications` is stored at [docs/sql/notifications_rls_original.sql](docs/sql/notifications_rls_original.sql). Use this file to review the previous policy definitions if needed.
+- Do not proceed with Phase 6 until you are ready; Phase 5 is documented as complete with the above caveats.
+ 
 
 ### Phase 6 — Co-author invitations
 
@@ -231,10 +284,10 @@ Use this as a **checklist**. Phases 0–3 now complete; Phase 4 begins below.
 | `POST /research/:id/view` | View tracking | Insert/RPC per web | ✅ Done |
 | `POST /research/:id/download` | Download tracking | Insert `paper_downloads` or RPC | ✅ Done |
 | `GET /research/profile/data` | Profile analytics | Optional: remove if unused | ⏳ Later |
-| `GET /auth/notifications` | List | `select` on notifications table | ⏳ Phase 5 |
-| `GET /auth/notifications/unread-count` | Count | `count()` query | ⏳ Phase 5 |
-| `PATCH /auth/notifications/:id/read` | Mark read | `update` row | ⏳ Phase 5 |
-| `PATCH /auth/notifications/read-all` | Mark all | `update` batch or RPC | ⏳ Phase 5 |
+| `GET /auth/notifications` | List | `select` on notifications table | ✅ Done |
+| `GET /auth/notifications/unread-count` | Count | `count()` query | ✅ Done |
+| `PATCH /auth/notifications/:id/read` | Mark read | `update` row | ✅ Done |
+| `PATCH /auth/notifications/read-all` | Mark all | `update` batch or RPC | ✅ Done |
 | `GET /auth/co-author-invitations` | List | `select` on invitation table | ⏳ Phase 6 |
 | `POST .../:token/accept` | Accept | `update` / RPC | ⏳ Phase 6 |
 | `POST .../:token/decline` | Decline | `update` / RPC | ⏳ Phase 6 |
