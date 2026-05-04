@@ -51,7 +51,11 @@ const INVITATION_SELECT = `
   expires_at,
   created_at,
   responded_at,
-  updated_at
+  updated_at,
+  research:co_author_invitations_research_id_fkey (
+    id,
+    title
+  )
 `;
 
 async function resolveCurrentStudentProfile() {
@@ -115,7 +119,7 @@ function toPaperAuthor(row?: InvitationUserRelation): PaperAuthor | null {
   };
 }
 
-function toInvitation(row: InvitationRow): CoAuthorInvitation {
+function toInvitation(row: InvitationRow, inviter?: InvitationUserRow | null): CoAuthorInvitation {
   const research = pickResearch(row.research);
 
   return {
@@ -134,7 +138,7 @@ function toInvitation(row: InvitationRow): CoAuthorInvitation {
           title: research.title ?? 'Untitled Research',
         }
       : null,
-    inviter: toPaperAuthor(row.inviter),
+    inviter: toPaperAuthor(inviter),
   };
 }
 
@@ -172,7 +176,31 @@ async function loadInvitations(status?: string): Promise<InvitationPayload> {
   }
 
   const rows = Array.isArray(data) ? (data as unknown as InvitationRow[]) : [];
-  const invitations = rows.map(toInvitation);
+  const inviterIds = Array.from(
+    new Set(rows.map((row) => row.inviter_id).filter((id): id is string => Boolean(id)))
+  );
+  const inviterMap = new Map<string, InvitationUserRow | null>();
+
+  if (inviterIds.length > 0) {
+    await Promise.all(
+      inviterIds.map(async (inviterId) => {
+        const { data: inviterData, error: inviterError } = await supabase.rpc('get_user_basic_info', {
+          user_id: inviterId,
+        });
+
+        if (inviterError) {
+          throw new Error(inviterError.message || 'Unable to load inviter profile.');
+        }
+
+        const inviterRows = Array.isArray(inviterData)
+          ? (inviterData as unknown as InvitationUserRow[])
+          : [];
+        inviterMap.set(inviterId, inviterRows[0] ?? null);
+      })
+    );
+  }
+
+  const invitations = rows.map((row) => toInvitation(row, inviterMap.get(row.inviter_id) ?? null));
   const pendingCount = await loadPendingCount(profile.id);
 
   return { invitations, pendingCount };
