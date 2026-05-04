@@ -238,9 +238,19 @@ WITH CHECK (
 
 ### Phase 6 — Co-author invitations
 
-Replace `invitationsApi` with Supabase operations matching **web** invitation model (status transitions, token usage). Preserve list, accept, and decline flows.
+✅ **COMPLETED (stable)**
 
-**Exit criteria:** `InvitationsScreen` works end-to-end with RLS.
+- ✅ Replaced `invitationsApi` Express calls with a Supabase facade backed by `co_author_invitations`
+- ✅ `getInvitations` / `getMine` loads the signed-in student’s invitations scoped by `invitee_id`
+- ✅ `acceptInvitation` / `declineInvitation` update `status` and set `responded_at` using an ISO timestamp
+- ✅ Uses email-resolved identity pattern consistent with Phase 5 (profile id from `public.users`)
+- ✅ Accept and decline confirmed working end to end — changes persist in the database
+
+**Known limitations:**
+- PostgREST join embeds for `research` title and `inviter` name fail silently on this table regardless of FK hint syntax — research shows as "Untitled Research" and inviter shows as "Unknown"; deferred for future investigation
+- `accepted_at` and `declined_at` do not exist on the actual schema — `INVITATION_SELECT` was corrected to match the real columns: `id`, `research_id`, `inviter_id`, `invitee_id`, `invitee_email`, `token`, `status`, `expires_at`, `created_at`, `responded_at`, `updated_at`
+
+**Exit criteria met:** `InvitationsScreen` loads from Supabase, accept and decline persist correctly, and no invitation path relies on Express.
 
 ### Phase 7 — Cleanup and documentation
 
@@ -288,9 +298,9 @@ Use this as a **checklist**. Phases 0–3 now complete; Phase 4 begins below.
 | `GET /auth/notifications/unread-count` | Count | `count()` query | ✅ Done |
 | `PATCH /auth/notifications/:id/read` | Mark read | `update` row | ✅ Done |
 | `PATCH /auth/notifications/read-all` | Mark all | `update` batch or RPC | ✅ Done |
-| `GET /auth/co-author-invitations` | List | `select` on invitation table | ⏳ Phase 6 |
-| `POST .../:token/accept` | Accept | `update` / RPC | ⏳ Phase 6 |
-| `POST .../:token/decline` | Decline | `update` / RPC | ⏳ Phase 6 |
+| `GET /auth/co-author-invitations` | List | `select` on invitation table | ✅ Done |
+| `POST .../:token/accept` | Accept | `update` / RPC | ✅ Done |
+| `POST .../:token/decline` | Decline | `update` / RPC | ✅ Done |
 
 ---
 
