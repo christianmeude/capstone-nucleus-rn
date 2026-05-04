@@ -57,10 +57,11 @@ src/
   utils/
 docs/
   PROJECT_CONTEXT.md
-  IMPLEMENTATION_PLAN.md
+  plans/
+    SUPABASE_MIGRATION.md
 ```
 
 ## Documentation
 
 - [PROJECT_CONTEXT.md](./docs/PROJECT_CONTEXT.md)
-- [IMPLEMENTATION_PLAN.md](./docs/IMPLEMENTATION_PLAN.md)
+- [SUPABASE_MIGRATION.md](./docs/plans/SUPABASE_MIGRATION.md)

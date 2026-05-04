@@ -16,7 +16,7 @@ This plan describes how to migrate the React Native app from an **Express-backen
 
 ### 1.1 HTTP and auth pipeline
 
-- **`src/api/http.ts`:** Axios instance with `baseURL` from `EXPO_PUBLIC_API_URL` (`src/config/env.ts`). Injects `Authorization: Bearer <access>`. On **401**, posts to **`/auth/refresh`** with the refresh token, updates AsyncStorage, retries the request; avoids refresh loops for login/refresh routes.
+- **Legacy Express Axios client:** removed in Phase 7 cleanup.
 - **`src/storage/authStorage.ts`:** AsyncStorage keys for access and refresh tokens.
 - **`src/context/AuthContext.tsx`:**  
   - **Sign-in:** `authApi.login` → stores tokens → sets `user`.  
@@ -80,7 +80,7 @@ flowchart LR
 | Screen components and **navigation** structure (`AppNavigator`, route types) | `src/api/http.ts` and Axios interceptors |
 | **Domain types** in `src/types/domain.ts` (map DB rows → these shapes) | Manual JWT refresh + `/auth/refresh` |
 | **AuthContext API surface** (`signIn`, `signOut`, `user`, `loading`, `refreshCurrentUser`) — keep signatures where possible | Implementation: swap internals to Supabase; token storage may delegate to Supabase session |
-| Student-only **role guard** | `EXPO_PUBLIC_API_URL` as required config |
+| Student-only **role guard** | Supabase env only (`EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_ANON_KEY`) |
 | Module names as **facades** (`researchApi`, `notificationsApi`, …) reimplemented with Supabase | `getApiErrorMessage` / `unwrapApiData` for Express responses |
 
 ---
@@ -254,14 +254,14 @@ WITH CHECK (
 
 ### Phase 7 — Cleanup and documentation
 
-- Remove `src/api/http.ts` and unused Axios imports.
-- Remove or narrow `src/api/helpers.ts` to Supabase error messaging.
-- Remove `EXPO_PUBLIC_API_URL` from required config if no longer used.
-- Delete or stop exporting **unused** `authApi.register`, `getSubmissionPolicy`, and any research “profile data” only used for non-student features—**only** after confirming no screen imports them.
-- Update `README.md` and `.env.example` for Supabase-only setup.
-- Mark [TRANSITION_HANDOFF.md](./TRANSITION_HANDOFF.md) as **historical** for Express mapping (see PROJECT_CONTEXT).
+✅ **COMPLETED (stable)**
 
-**Exit criteria:** No dead Express code paths; env docs accurate.
+- ✅ Deleted Express client modules: [src/api/http.ts](src/api/http.ts), [src/api/helpers.ts](src/api/helpers.ts), [src/api/auth.ts](src/api/auth.ts)
+- ✅ Removed legacy Express base URL config from [src/config/env.ts](src/config/env.ts)
+- ✅ Trimmed auth token storage to live usage: [src/storage/authStorage.ts](src/storage/authStorage.ts) now only exports `clearAuthTokens`
+- ✅ Removed all Axios usage and uninstalled the dependency
+
+**Exit criteria met:** No remaining Express code paths or config; Axios removed; app uses Supabase-only flow.
 
 ---
 
