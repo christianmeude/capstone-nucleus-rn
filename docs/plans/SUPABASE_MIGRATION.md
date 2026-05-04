@@ -151,7 +151,7 @@ flowchart LR
 
 ### Phase 4 — Views, downloads, and files
 
-⏳ **PARTIALLY COMPLETE — PDF OPEN WORKING, COUNT PERSISTENCE UNRESOLVED**
+✅ **COMPLETED (stable)**
 
 **Working:**
 - ✅ PDF open flow end-to-end: file URL resolution, signed URL creation with fallback to public URL
@@ -163,14 +163,13 @@ flowchart LR
 - ✅ Signed URL creation includes 1-hour expiration; gracefully falls back to public URL on failure
 - ✅ Error handling preserves existing UX: view tracking failures don't block file open, download validation errors show user-facing messages
 
-**Known issue (deferred for Phase 7 or standalone fix):**
-- ❌ View count and download count do not persist to UI after navigation
-- ❌ RPC calls `increment_view_count` and `increment_download_count` execute without errors but database counters remain static
-- ❌ Audit inserts to `paper_views` and `paper_downloads` succeed but counter columns on `research_papers` are not incremented
-- ❌ Root cause unresolved; likely RLS on counter columns, trigger issue, or transaction isolation—requires deeper Supabase investigation
-- ❌ Does not block Phase 5 (Notifications) or Phase 6 (Invitations)
+**Resolved (post-Phase 7 external fixes):**
+- ✅ `increment_view_count` and `increment_download_count` updated to `SECURITY DEFINER` with `SET search_path = public`
+- ✅ `paper_views` and `paper_downloads` insert policies updated to email-based identity resolution
+- ✅ View and download counts now increment and persist after navigation
+- ✅ Backups saved in [docs/sql/increment_count_rpcs_original.sql](docs/sql/increment_count_rpcs_original.sql), [docs/sql/paper_views_rls_original.sql](docs/sql/paper_views_rls_original.sql), and [docs/sql/paper_downloads_rls_original.sql](docs/sql/paper_downloads_rls_original.sql)
 
-**Exit criteria (partial):** PDF open flow and file access fully functional. View/download count persistence deferred as a known issue.
+**Exit criteria met:** PDF open flow and file access are fully functional, and view/download counts now persist correctly after navigation.
 
 ### Phase 5 — Notifications
 
@@ -228,7 +227,7 @@ WITH CHECK (
 
 - **Validation:** Notifications now load per-user, unread counts are accurate, `markAsRead` and `markAllAsRead` persist correctly, and the `NotificationsScreen` no longer depends on Express.
 
-- **Known limitation (systemic):** The same UUID mismatch pattern exists in `research_papers` RLS. The `Combined research read access` policy currently checks `auth.uid() = author_id`, but `author_id` stores `public.users` UUIDs. This means student-scoped selects only succeed when `status = 'approved'` (public), and intermediate workflow states (adviser/dean approvals) fail to load. This is a schema-level inconsistency that requires coordination with the web/backend team to resolve; it is outside the scope of this Phase 5 work and is parked for Phase 7 or a standalone fix.
+- **Resolved (post-Phase 7 external fix):** `research_papers` RLS policies now use email-based identity resolution, so students can see their papers across all statuses. The original policies are backed up in [docs/sql/research_papers_rls_original.sql](docs/sql/research_papers_rls_original.sql).
 
 **Notes / next steps:**
 
@@ -246,9 +245,9 @@ WITH CHECK (
 - ✅ Uses email-resolved identity pattern consistent with Phase 5 (profile id from `public.users`)
 - ✅ Accept and decline confirmed working end to end — changes persist in the database
 
-**Known limitations:**
-- PostgREST join embeds for `research` title and `inviter` name fail silently on this table regardless of FK hint syntax — research shows as "Untitled Research" and inviter shows as "Unknown"; deferred for future investigation
-- `accepted_at` and `declined_at` do not exist on the actual schema — `INVITATION_SELECT` was corrected to match the real columns: `id`, `research_id`, `inviter_id`, `invitee_id`, `invitee_email`, `token`, `status`, `expires_at`, `created_at`, `responded_at`, `updated_at`
+**Resolved (post-Phase 7 updates):**
+- ✅ PostgREST joins for `research` and `inviter` are now enabled after the `research_papers` RLS fix and the updated embed select in [src/api/invitations.ts](src/api/invitations.ts)
+- ✅ `INVITATION_SELECT` matches the actual schema columns (`id`, `research_id`, `inviter_id`, `invitee_id`, `invitee_email`, `token`, `status`, `expires_at`, `created_at`, `responded_at`, `updated_at`)
 
 **Exit criteria met:** `InvitationsScreen` loads from Supabase, accept and decline persist correctly, and no invitation path relies on Express.
 
@@ -262,6 +261,58 @@ WITH CHECK (
 - ✅ Removed all Axios usage and uninstalled the dependency
 
 **Exit criteria met:** No remaining Express code paths or config; Axios removed; app uses Supabase-only flow.
+
+### Post-Phase 7 updates (external fixes and code changes)
+
+✅ **COMPLETED — All three deferred issues resolved**
+
+#### Issue #1 — View/Download count persistence (FIXED)
+
+**Root cause:** Counter RPCs (`increment_view_count`, `increment_download_count`) were silently updating 0 rows because:
+1. The underlying `UPDATE` on `research_papers` was blocked by the UPDATE policy when called under the anon key
+2. `paper_views` and `paper_downloads` INSERT policies were preventing audit rows from being inserted
+
+**External Supabase fixes:**
+- `increment_view_count` and `increment_download_count` changed from `SECURITY INVOKER` to `SECURITY DEFINER` with `SET search_path = public` so they execute with schema owner permissions
+- `paper_views` and `paper_downloads` INSERT policies replaced with email-based identity resolution pattern (consistent with Phase 5 notifications fix)
+- Original RPC definitions backed up in [docs/sql/increment_count_rpcs_original.sql](docs/sql/increment_count_rpcs_original.sql)
+- Original policies backed up in [docs/sql/paper_views_rls_original.sql](docs/sql/paper_views_rls_original.sql) and [docs/sql/paper_downloads_rls_original.sql](docs/sql/paper_downloads_rls_original.sql)
+
+**Validation:** View and download counts now increment correctly when papers are opened; counts persist in the database and are visible on refresh.
+
+#### Issue #2 — Research papers UUID mismatch (FIXED)
+
+**Root cause:** `auth.uid()` ownership checks on `research_papers` silently failed under the anon key because the mobile client's `auth.users.id` (from Supabase Auth) did not match the UUIDs stored in `public.users` on the same record. This caused students to be unable to see their own papers in any status.
+
+**External Supabase fixes:**
+- All three `research_papers` RLS policies (INSERT, SELECT, UPDATE) replaced with email-based identity resolution pattern:
+  - Identity resolved as `SELECT u.id FROM public.users u WHERE u.email = auth.email()`
+  - Students can now see all their papers regardless of approval status
+- Original policies backed up in [docs/sql/research_papers_rls_original.sql](docs/sql/research_papers_rls_original.sql)
+
+**Validation:** Students now see their papers in My Papers view across all statuses; Dashboard counts are accurate.
+
+#### Issue #3 — Invitation card blank fields (FIXED)
+
+**Root cause:** Invitation cards showed "Untitled Research" and "Unknown" because:
+1. `INVITATION_SELECT` never requested the `research` and `inviter` joins
+2. PostgREST joins on `research_papers` were blocked by the UUID mismatch RLS issue (see Issue #2)
+3. PostgREST join on `users` (for inviter name) caused infinite RLS recursion (error 42P17) when expanding the users policy for this use case
+
+**External Supabase fixes:**
+- `research_papers` SELECT policy updated to add co-author invitee read condition: invitees can read papers they were invited to regardless of approval status
+  - Original policy backed up in [docs/sql/research_papers_rls_co_author_read_pre_fix.sql](docs/sql/research_papers_rls_co_author_read_pre_fix.sql)
+- New `get_user_basic_info(user_id uuid)` SECURITY DEFINER function created to safely resolve inviter profile info without triggering `users` RLS recursion
+  - Original users policy backed up in [docs/sql/users_rls_pre_inviter_read_fix.sql](docs/sql/users_rls_pre_inviter_read_fix.sql)
+
+**Code changes:**
+- `INVITATION_SELECT` updated to include PostgREST embed for `research` via `co_author_invitations_research_id_fkey`
+- `inviter` PostgREST join removed from `INVITATION_SELECT` to avoid RLS recursion
+- `loadInvitations()` now builds a unique inviter ID map and calls `get_user_basic_info` RPC for each inviter (minimizing RPC calls per load)
+- `toInvitation()` updated to accept resolved inviter as a second parameter
+- Changes in [src/api/invitations.ts](src/api/invitations.ts)
+
+**Validation:** Invitation cards now display research title and inviter name correctly; accepts and declines persist as before.
 
 ---
 
