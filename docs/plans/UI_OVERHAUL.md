@@ -1,6 +1,6 @@
 # [IN PROGRESS] NUcleus Mobile — Implementation Plan: UI Overhaul
 
-> **STATUS: IN PROGRESS** — Phase 1 complete. Phases 2–10 not started.
+> **STATUS: IN PROGRESS** — Phases 1–2 complete. Phases 3–10 not started.
 > *This plan describes a UI-only overhaul of the NUcleus Mobile React Native Expo app on branch `feat/ui-overhaul`. It re-grounds every visible surface in the brand identity and the design system defined in [docs/PRODUCT_ROADMAP.md](../PRODUCT_ROADMAP.md), without touching the data layer, navigation contracts, or domain types. The Supabase migration is fully complete and stable; the data path is frozen for the duration of this work.*
 
 **Canonical product context:** [PROJECT_CONTEXT.md](../PROJECT_CONTEXT.md)
@@ -122,7 +122,7 @@ The user's per-screen scope is explicitly the six listed screens (Dashboard, MyP
 
 ## 5. Phased plan
 
-Each phase declares scope, what is explicitly **not** changing, exit criteria, and a status field. Current state: Phase 1 is complete; Phases 2–10 are not started.
+Each phase declares scope, what is explicitly **not** changing, exit criteria, and a status field. Current state: Phases 1–2 are complete; Phases 3–10 are not started.
 
 ### Phase 1 — Design system foundation
 
@@ -136,7 +136,7 @@ Each phase declares scope, what is explicitly **not** changing, exit criteria, a
 - ✅ Mounted `AuthProvider` inside the `fontsReady` branch so auth UI did not render before typography was ready.
 - ✅ Tightened font-weight typing to `NonNullable<TextStyle['fontWeight']>` to resolve a strict-mode typing issue.
 - ✅ Resolved the royal blue working mid-tone to `palette.navy[400] = #2E5BC9` (still subject to fine-tuning).
-- ⏳ Deferred `useTheme()`/provider, `src/theme/radii.ts`, and `src/theme/motion.ts` to later phases and documented the deferment in this plan.
+- ⏳ Deferred `useTheme()`/provider and `src/theme/motion.ts` to later phases and documented the deferment in this plan.
 
 **Implementation decisions**
 
@@ -155,64 +155,32 @@ Each phase declares scope, what is explicitly **not** changing, exit criteria, a
 
 ### Phase 2 — Component system
 
-⏳ **NOT STARTED**
+✅ **COMPLETED (stable)**
 
-**What changes and why**
+**Implementation summary**
 
-Build the component vocabulary defined in roadmap [§5 Component System](../PRODUCT_ROADMAP.md#5-component-system-conceptual-ui-building-blocks) so that screens can be expressed in terms of branded primitives instead of inline `View` + `StyleSheet` blocks. This is what makes the per-screen overhaul phases small and consistent.
+- ✅ Added [src/theme/radii.ts](../../src/theme/radii.ts) with `sm / md / lg / pill` tokens and exported it through [src/theme/index.ts](../../src/theme/index.ts).
+- ✅ Created UI primitives in `src/components/ui/`: [Surface.tsx](../../src/components/ui/Surface.tsx), [Card.tsx](../../src/components/ui/Card.tsx), [Button.tsx](../../src/components/ui/Button.tsx), [Chip.tsx](../../src/components/ui/Chip.tsx), [Badge.tsx](../../src/components/ui/Badge.tsx), [Stat.tsx](../../src/components/ui/Stat.tsx), [IconButton.tsx](../../src/components/ui/IconButton.tsx), [EmptyState.tsx](../../src/components/ui/EmptyState.tsx), [Skeleton.tsx](../../src/components/ui/Skeleton.tsx), [InlineNotice.tsx](../../src/components/ui/InlineNotice.tsx), [BottomSheet.tsx](../../src/components/ui/BottomSheet.tsx), [Divider.tsx](../../src/components/ui/Divider.tsx), [Logo.tsx](../../src/components/ui/Logo.tsx), [OrbitalAccent.tsx](../../src/components/ui/OrbitalAccent.tsx), and [index.ts](../../src/components/ui/index.ts).
+- ✅ Built feature components in `src/components/`: [ResearchCard.tsx](../../src/components/ResearchCard.tsx), [NotificationCard.tsx](../../src/components/NotificationCard.tsx), [InvitationCard.tsx](../../src/components/InvitationCard.tsx), [PaperStatusChip.tsx](../../src/components/PaperStatusChip.tsx).
+- ✅ Centralized duplicated status sets in [PaperStatusChip.tsx](../../src/components/PaperStatusChip.tsx): `ACTIVE_STATUSES`, `ACTION_STATUSES`, and `PUBLISHED_STATUSES`.
+- ✅ Re-skinned [src/navigation/AppNavigator.tsx](../../src/navigation/AppNavigator.tsx) with theme-driven tab bar/stack header styles, plus a subtle active-tab gold dot accent and a `Logo`-based `FullScreenLoader`.
+- ✅ Migrated auth surfaces to tokenized styling and shared primitives in [src/screens/auth/LoginScreen.tsx](../../src/screens/auth/LoginScreen.tsx) and [src/screens/auth/UnsupportedRoleScreen.tsx](../../src/screens/auth/UnsupportedRoleScreen.tsx) without behavior or copy changes.
+- ✅ Kept tab screens and `ResearchDetailScreen` untouched per scope.
 
-Token additions deferred from Phase 1:
+**Implementation decisions**
 
-- `src/theme/radii.ts` — `sm / md / lg / pill` for cards, buttons, chips. Added now because `Card`, `Button`, and `Chip` are the first consumers.
+- `useTheme()` or context was not introduced. All new work consumed tokens through direct imports from `src/theme` (`import { theme } from '../theme'` or path-equivalent), per the Phase 2 correction.
+- `Logo` and `OrbitalAccent` were implemented as static React Native composition because no SVG dependency was present in the project dependency tree.
+- `BottomSheet` was implemented with native RN `Modal` and `Pressable` only; no extra dependency was added.
+- The optional gold active-tab accent was kept because it reads subtle and consistent with the orbital motif.
 
-Primitives in `src/components/ui/`:
+**Exit criteria met:**
 
-- `Surface` — themed background with optional elevation level; the building block for all cards.
-- `Card` — `Surface` + standard padding/radius; optional pressable variant with subtle press feedback.
-- `Button` — three variants matching roadmap §5 button hierarchy: `primary` (brand navy fill, white label), `secondary` (outline, navy border + label), `subtle` (text-only, navy label). Sizes: `md` (default), `sm`. Loading state via inline `ActivityIndicator`. Min-height meets touch-target guidance (44pt).
-- `Chip` — filter chip and status chip variants; active state uses brand navy fill. Status chip variant accepts a `tone` (neutral / info / success / warning / danger) sourced from semantic colors.
-- `Badge` — small unread / count indicator. Uses accent gold for emphasis sparingly per roadmap §2 ("reserve gold for emphasis, not decoration").
-- `Stat` — label + value compact card used in Dashboard and Invitations counts.
-- `IconButton` — icon-only pressable, used in headers (e.g., logout).
-- `EmptyState` — centered icon + headline + helper text + optional action; replaces the bare "No items found" strings.
-- `Skeleton` — shimmer placeholder for list rows and detail loading per roadmap §6 ("skeletons, prefetching key assets").
-- `Toast` / `InlineNotice` — non-modal feedback per roadmap §3 ("inline confirmations, subtle toasts").
-- `BottomSheet` — bottom-anchored modal panel for "temporary, focused tasks" per roadmap §5; built on RN's `Modal` (no new dependency in this phase).
-- `Divider` — themed hairline.
-- `Logo` and `OrbitalAccent` — brand-mark components for `LoginScreen`, splash, and any header that needs the brand glyph. Static SVG-style RN composition; no external SVG library required (or `expo-svg` if already justified — decide during implementation).
-
-Feature-level components in `src/components/`:
-
-- `ResearchCard` — title-first, secondary metadata row (author, status chip, date, view/download counts). Used by Dashboard recents, MyPapers list, Browse list. Single component, presentation-only; consumes a `ResearchPaper` from `src/types/domain`. Takes existing helpers from [src/utils/format.ts](../../src/utils/format.ts) (`statusToLabel`, `getPrimaryAuthorName`, `paperDate`, `formatDate`).
-- `NotificationCard` — compact title + message + timestamp + read/unread state.
-- `InvitationCard` — research title + inviter line + expiry + accept/decline buttons (uses `Button` primitive). Read-only on non-pending statuses.
-- `PaperStatusChip` — thin wrapper over `Chip` mapping `PaperStatus` to a tone. Centralizes status color logic and removes duplicated sets (`ACTIVE_STATUSES`, `ACTION_STATUSES`, `PUBLISHED_STATUSES`) currently inlined across [DashboardScreen](../../src/screens/main/DashboardScreen.tsx) and [MyPapersScreen](../../src/screens/main/MyPapersScreen.tsx). The status sets themselves move to `src/components/PaperStatusChip.tsx` or a co-located helper, not into the data layer.
-
-Navigator visual config (still in Phase 2 because the new tokens unlock it):
-
-- Tab bar in [src/navigation/AppNavigator.tsx](../../src/navigation/AppNavigator.tsx): apply themed `tabBarActiveTintColor` (brand navy), `tabBarInactiveTintColor` (muted neutral), branded label typography, and the surface/elevation tokens. Optional gold dot accent under the active tab informed by the orbital motif. **Route names, route params, gating logic, and tab order are unchanged.**
-- Stack header: themed background, brand-typography title, themed back-button color.
-- `FullScreenLoader` in [src/navigation/AppNavigator.tsx](../../src/navigation/AppNavigator.tsx): re-skinned with theme tokens and the brand mark. Behavior unchanged.
-
-Auth surfaces (consume tokens here, no layout redesign):
-
-- [src/screens/auth/LoginScreen.tsx](../../src/screens/auth/LoginScreen.tsx) and [src/screens/auth/UnsupportedRoleScreen.tsx](../../src/screens/auth/UnsupportedRoleScreen.tsx): replace inline hex literals with theme tokens and swap the bespoke buttons for the new `Button` primitive. The `Logo` component is rendered in `LoginScreen`. No copy changes.
-
-**Explicitly NOT changing in this phase**
-
-- No data-layer file is touched.
-- No navigation route, route param, or gating logic is touched.
-- No tab screen file is touched (Dashboard, MyPapers, Browse, Notifications, Invitations) — those are the per-screen phases.
-- `ResearchDetailScreen` is not touched — it has its own phase.
-- No new domain type is added.
-
-**Exit criteria**
-
-- All primitives and feature components above exist with TypeScript types and consume `useTheme()`.
-- The tab bar and stack header read brand colors and brand typography from the theme.
-- Login and UnsupportedRole render unchanged in layout but with brand-correct colors and typography.
-- `npx tsc --noEmit` passes.
-- A manual smoke pass of the auth flow (sign in, sign out, unsupported role) shows no behavioral regression.
+- ✅ All Phase 2 primitives and feature components were created with TypeScript types and consumed tokens via direct `theme` imports.
+- ✅ Tab bar and stack header read colors/typography from theme tokens.
+- ✅ `LoginScreen` and `UnsupportedRoleScreen` were migrated to tokens + shared `Button` without layout redesign, copy changes, or behavior changes.
+- ✅ `npx tsc --noEmit` — green.
+- ✅ Data layer, domain types, route names/params/tab order, tab screens, and `ResearchDetailScreen` were not modified.
 
 ---
 
@@ -501,7 +469,7 @@ After **each phase**:
 - No data-layer changes. Supabase facades, RLS, RPCs, storage paths, and audit-row inserts are frozen.
 - No domain shape changes. [src/types/domain.ts](../../src/types/domain.ts) is frozen.
 - No navigation contract changes. Route names, route params, tab order, and gating logic are frozen.
-- No copy overhaul beyond the small student-facing rewrites of two developer-flavored subtitles in Phases 3 and 5. Those rewrites are presented as proposals pending approval; they are not finalized in this plan.
+- No copy overhaul beyond the small student-facing rewrites of two developer-flavored subtitles in Phases 3 and 5. These rewrites are approved as working values and may still be fine-tuned.
 - No localization or i18n work.
 - No analytics or telemetry instrumentation.
 - No authentication flow changes (forgot password, register, deep-link handling).

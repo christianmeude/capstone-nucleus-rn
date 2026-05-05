@@ -18,6 +18,7 @@ import { colors, palette } from './colors';
 import { families, fontWeightToKey, typography } from './typography';
 import { spacing } from './spacing';
 import { shadows } from './shadows';
+import { radii } from './radii';
 
 export const theme = {
   colors,
@@ -26,6 +27,7 @@ export const theme = {
   fontFamilies: families,
   fontWeights: fontWeightToKey,
   spacing,
+  radii,
   shadows,
 } as const;
 
@@ -46,5 +48,7 @@ export type {
 } from './typography';
 export { spacing } from './spacing';
 export type { Spacing, SpacingKey } from './spacing';
+export { radii } from './radii';
+export type { Radii, RadiiKey } from './radii';
 export { shadows } from './shadows';
 export type { Shadows, ShadowsKey } from './shadows';

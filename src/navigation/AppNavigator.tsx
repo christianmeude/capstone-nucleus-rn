@@ -1,4 +1,4 @@
-import { ActivityIndicator, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -13,6 +13,8 @@ import { BrowseScreen } from '../screens/main/BrowseScreen';
 import { NotificationsScreen } from '../screens/main/NotificationsScreen';
 import { InvitationsScreen } from '../screens/main/InvitationsScreen';
 import { ResearchDetailScreen } from '../screens/main/ResearchDetailScreen';
+import { theme } from '../theme';
+import { Logo } from '../components/ui';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tabs = createBottomTabNavigator<StudentTabsParamList>();
@@ -30,12 +32,37 @@ const StudentTabs = () => {
     <Tabs.Navigator
       screenOptions={({ route }) => ({
         headerTitleAlign: 'left',
-        tabBarIcon: ({ color, size }) => (
-          <Ionicons
-            name={tabIcons[route.name as keyof StudentTabsParamList]}
-            color={color}
-            size={size}
-          />
+        headerStyle: {
+          backgroundColor: theme.colors.surface.base,
+        },
+        headerShadowVisible: false,
+        headerTitleStyle: {
+          ...theme.typography.h3,
+          color: theme.colors.text.primary,
+        },
+        tabBarStyle: {
+          backgroundColor: theme.colors.surface.raised,
+          borderTopColor: theme.colors.border.subtle,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          paddingTop: theme.spacing.xs,
+          paddingBottom: theme.spacing.sm,
+          height: 66,
+        },
+        tabBarLabelStyle: {
+          ...theme.typography.caption,
+          marginTop: 2,
+        },
+        tabBarActiveTintColor: theme.colors.brand.primary,
+        tabBarInactiveTintColor: theme.colors.text.muted,
+        tabBarIcon: ({ color, size, focused }) => (
+          <View style={styles.tabIconWrap}>
+            <Ionicons
+              name={tabIcons[route.name as keyof StudentTabsParamList]}
+              color={color}
+              size={size}
+            />
+            {focused ? <View style={styles.activeDot} /> : null}
+          </View>
         ),
       })}
     >
@@ -65,17 +92,10 @@ const StudentTabs = () => {
 };
 
 const FullScreenLoader = () => (
-  <View
-    style={{
-      flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 12,
-      backgroundColor: '#f8fafc',
-    }}
-  >
-    <ActivityIndicator size="large" color="#1c4d8d" />
-    <Text style={{ color: '#334155', fontSize: 15 }}>Restoring session...</Text>
+  <View style={styles.loaderContainer}>
+    <Logo size="sm" showWordmark={false} />
+    <ActivityIndicator size="large" color={theme.colors.brand.primary} />
+    <Text style={styles.loaderText}>Restoring session...</Text>
   </View>
 );
 
@@ -88,7 +108,18 @@ export const AppNavigator = () => {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator>
+      <Stack.Navigator
+        screenOptions={{
+          headerStyle: { backgroundColor: theme.colors.surface.base },
+          headerShadowVisible: false,
+          headerTintColor: theme.colors.brand.primary,
+          headerTitleStyle: {
+            ...theme.typography.h3,
+            color: theme.colors.text.primary,
+          },
+          headerTitleAlign: 'left',
+        }}
+      >
         {!user ? (
           <Stack.Screen
             name="Login"
@@ -119,3 +150,28 @@ export const AppNavigator = () => {
     </NavigationContainer>
   );
 };
+
+const styles = StyleSheet.create({
+  tabIconWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+  },
+  activeDot: {
+    width: 5,
+    height: 5,
+    borderRadius: theme.radii.pill,
+    backgroundColor: theme.colors.brand.accent,
+  },
+  loaderContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: theme.spacing.sm,
+    backgroundColor: theme.colors.surface.base,
+  },
+  loaderText: {
+    ...theme.typography.body,
+    color: theme.colors.text.secondary,
+  },
+});
