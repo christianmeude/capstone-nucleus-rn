@@ -113,8 +113,6 @@ export interface CoAuthorInvitation {
   expires_at?: string;
   created_at?: string;
   responded_at?: string | null;
-  accepted_at?: string | null;
-  declined_at?: string | null;
   research?: {
     id: string;
     title: string;

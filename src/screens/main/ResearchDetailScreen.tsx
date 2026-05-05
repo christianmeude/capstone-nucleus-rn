@@ -41,12 +41,6 @@ export const ResearchDetailScreen = () => {
         const detail = await researchApi.getResearchById(paperId);
         setPaper(detail.paper);
         setWorkflow(detail.workflowHistory || []);
-
-        try {
-          await researchApi.trackView(paperId);
-        } catch {
-          // Ignore tracking errors so detail page still loads.
-        }
       } catch (_error) {
         setError('Unable to load paper details.');
       } finally {
@@ -63,11 +57,21 @@ export const ResearchDetailScreen = () => {
     setOpeningFile(true);
 
     try {
+      // Track view only when opening PDF
+      try {
+        await researchApi.trackView(paperId);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Unable to track view.');
+      }
+
+      // Track download if requested
       if (trackDownload) {
         try {
           await researchApi.trackDownload(paperId);
-        } catch {
-          // Download tracking failure should not block opening the file.
+        } catch (error) {
+          // If download tracking fails (e.g., downloads disabled), show error and stop
+          setError(error instanceof Error ? error.message : 'Unable to track download.');
+          return;
         }
       }
 

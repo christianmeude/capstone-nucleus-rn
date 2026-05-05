@@ -8,9 +8,19 @@ import {
   View,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useAuth } from '../../context/AuthContext';
 import { researchApi } from '../../api/research';
 import { ResearchPaper } from '../../types/domain';
 import { paperDate, statusToLabel } from '../../utils/format';
+
+const LogoutButton = () => {
+  const { signOut } = useAuth();
+  return (
+    <Pressable onPress={signOut} style={styles.logoutButton}>
+      <Text style={styles.logoutText}>Logout</Text>
+    </Pressable>
+  );
+};
 
 const ACTIVE_STATUSES = new Set([
   'pending',
@@ -86,9 +96,14 @@ export const DashboardScreen = () => {
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadData(true)} />}
     >
-      <View style={styles.header}>
-        <Text style={styles.title}>Student Dashboard</Text>
-        <Text style={styles.subtitle}>Same data as web app, mobile-optimized.</Text>
+      <View style={styles.headerRow}>
+        <View style={styles.headerLeft}>
+          <Text style={styles.title}>Student Dashboard</Text>
+          <Text style={styles.subtitle}>Same data as web app, mobile-optimized.</Text>
+        </View>
+        <View style={styles.headerRight}>
+          <LogoutButton />
+        </View>
       </View>
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -148,8 +163,18 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 16,
   },
-  header: {
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     gap: 6,
+  },
+  headerLeft: {
+    gap: 6,
+    flex: 1,
+  },
+  headerRight: {
+    marginLeft: 12,
   },
   title: {
     fontSize: 24,
@@ -223,5 +248,15 @@ const styles = StyleSheet.create({
   paperMeta: {
     fontSize: 12,
     color: '#64748b',
+  },
+  logoutButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: '#ef4444',
+    borderRadius: 8,
+  },
+  logoutText: {
+    color: '#ffffff',
+    fontWeight: '700',
   },
 });
