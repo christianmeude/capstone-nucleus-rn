@@ -229,6 +229,7 @@ Each phase declares scope, what is explicitly **not** changing, exit criteria, a
 - ✅ Replaced bare loading and empty states with `Skeleton` and `EmptyState`.
 - ✅ Replaced bare error text with `InlineNotice`.
 - ✅ Themed `RefreshControl` using `theme.colors.brand.primary`.
+- ✅ Applied pre-commit presentational corrections: filter labels updated to `Approved` and `Revision Required`, `PaperStatusChip` tone mapping refined (`approved/published` green, `revision_required` warning, `rejected` danger), and `ResearchCard` view/download counts now render only for `approved`/`published` statuses via centralized `PUBLISHED_STATUSES`.
 
 **Implementation decisions**
 

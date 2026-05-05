@@ -127,14 +127,14 @@ export const MyPapersScreen = () => {
           tone="info"
         />
         <Chip
-          label="Published"
+          label="Approved"
           variant="filter"
           active={activeFilter === 'published'}
           onPress={() => setActiveFilter('published')}
           tone="success"
         />
         <Chip
-          label="Needs Action"
+          label="Revision Required"
           variant="filter"
           active={activeFilter === 'action'}
           onPress={() => setActiveFilter('action')}

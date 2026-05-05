@@ -16,7 +16,8 @@ export const PUBLISHED_STATUSES = new Set<PaperStatus>(['approved', 'published']
 
 const statusToTone = (status?: PaperStatus): ChipTone => {
   if (!status) return 'neutral';
-  if (ACTION_STATUSES.has(status)) return 'danger';
+  if (status === 'revision_required') return 'warning';
+  if (status === 'rejected') return 'danger';
   if (PUBLISHED_STATUSES.has(status)) return 'success';
   if (ACTIVE_STATUSES.has(status)) return 'info';
   return 'neutral';
