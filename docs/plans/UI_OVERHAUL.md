@@ -1,6 +1,6 @@
 # [IN PROGRESS] NUcleus Mobile — Implementation Plan: UI Overhaul
 
-> **STATUS: IN PROGRESS** — Phases 1–3 complete. Phases 4–10 not started.
+> **STATUS: IN PROGRESS** — Phases 1–4 complete. Phases 5–10 not started.
 > *This plan describes a UI-only overhaul of the NUcleus Mobile React Native Expo app on branch `feat/ui-overhaul`. It re-grounds every visible surface in the brand identity and the design system defined in [docs/PRODUCT_ROADMAP.md](../PRODUCT_ROADMAP.md), without touching the data layer, navigation contracts, or domain types. The Supabase migration is fully complete and stable; the data path is frozen for the duration of this work.*
 
 **Canonical product context:** [PROJECT_CONTEXT.md](../PROJECT_CONTEXT.md)
@@ -122,7 +122,7 @@ The user's per-screen scope is explicitly the six listed screens (Dashboard, MyP
 
 ## 5. Phased plan
 
-Each phase declares scope, what is explicitly **not** changing, exit criteria, and a status field. Current state: Phases 1–3 are complete; Phases 4–10 are not started.
+Each phase declares scope, what is explicitly **not** changing, exit criteria, and a status field. Current state: Phases 1–4 are complete; Phases 5–10 are not started.
 
 ### Phase 1 — Design system foundation
 
@@ -217,33 +217,31 @@ Each phase declares scope, what is explicitly **not** changing, exit criteria, a
 
 ### Phase 4 — MyPapers overhaul
 
-⏳ **NOT STARTED**
+✅ **COMPLETED (stable)**
 
-**What changes and why**
+**Implementation summary**
 
-Re-implement [src/screens/main/MyPapersScreen.tsx](../../src/screens/main/MyPapersScreen.tsx) for roadmap [§4.4 My Papers Experience](../PRODUCT_ROADMAP.md#44-my-papers-experience): "personal list with status chips, recent activity, and contextual quick actions … sort and filter controls that respect student-centric views".
+- ✅ Re-implemented [src/screens/main/MyPapersScreen.tsx](../../src/screens/main/MyPapersScreen.tsx) with design-system tokens and primitives and removed all hex literals.
+- ✅ Replaced the bare `TextInput` with a themed search wrapper containing a leading search icon and a clear affordance (`Chip` labeled `Clear`) that resets `query`.
+- ✅ Replaced local filter pills with `Chip` primitives for `All`, `In Review`, `Published`, and `Needs Action`, keeping `activeFilter` semantics unchanged.
+- ✅ Replaced inlined status-set definitions with centralized imports from [src/components/PaperStatusChip.tsx](../../src/components/PaperStatusChip.tsx): `ACTIVE_STATUSES`, `ACTION_STATUSES`, and `PUBLISHED_STATUSES`.
+- ✅ Replaced bare paper rows with [ResearchCard.tsx](../../src/components/ResearchCard.tsx) while preserving navigation to `ResearchDetail`.
+- ✅ Replaced bare loading and empty states with `Skeleton` and `EmptyState`.
+- ✅ Replaced bare error text with `InlineNotice`.
+- ✅ Themed `RefreshControl` using `theme.colors.brand.primary`.
 
-Visual changes:
+**Implementation decisions**
 
-- Search input becomes a themed `TextInput` wrapper with leading search icon and clear affordance.
-- Filter chips (`All`, `In Review`, `Published`, `Needs Action`) become `Chip` primitives. The active state uses brand navy fill.
-- Each row becomes a `ResearchCard` with `PaperStatusChip` rendering the status chip in tone.
-- Empty and loading states use `EmptyState` and `Skeleton`.
-- The status sets (`ACTIVE_STATUSES`, `ACTION_STATUSES`, `PUBLISHED_STATUSES`) and `isFilterMatch` move into a co-located helper or into `PaperStatusChip`'s helper module so that `Dashboard` and `MyPapers` share one source of truth. **The set values themselves are unchanged.**
+- `isFilterMatch`, free-text search targeting (`title + abstract + keywords`), and descending `paperDate` sort order were kept functionally identical and only re-skinned.
+- `EmptyState` icon was passed as a rendered `<Ionicons />` node to avoid the string-as-child runtime issue fixed in Phase 3.
+- The clear affordance was implemented as a compact `Chip` to stay within existing primitives without introducing new component surface area.
 
-**Explicitly NOT changing**
+**Exit criteria met:**
 
-- `researchApi.getMyPapers` call is unchanged.
-- Filter keys and the filtering logic are functionally unchanged.
-- Sort order (most recent first by `paperDate`) is unchanged.
-- Navigation to `ResearchDetail` is unchanged.
-
-**Exit criteria**
-
-- `MyPapersScreen` contains no hex literals; uses theme + primitives + `ResearchCard` + `PaperStatusChip`.
-- Search and filter behavior is identical to current.
-- `npx tsc --noEmit` passes.
-- Manual smoke: filter chips toggle, search filters list, refresh works, tap opens detail.
+- ✅ `MyPapersScreen` now uses theme + shared primitives (`Chip`, `ResearchCard`, `Skeleton`, `EmptyState`, `InlineNotice`) with no hex literals.
+- ✅ `researchApi.getMyPapers`, `loadData`, `useFocusEffect`, `isFilterMatch`, search behavior, sort order, and `ResearchDetail` navigation remained unchanged.
+- ✅ `npx tsc --noEmit` — green.
+- ✅ Filter toggling, search-within-filter behavior, pull-to-refresh, and row navigation pathways were preserved.
 
 ---
 

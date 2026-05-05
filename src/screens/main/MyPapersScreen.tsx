@@ -1,6 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
 import {
-  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -8,24 +7,21 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { researchApi } from '../../api/research';
 import { PaperStatus, ResearchPaper } from '../../types/domain';
-import { formatDate, paperDate, statusToLabel } from '../../utils/format';
+import { paperDate } from '../../utils/format';
+import { theme } from '../../theme';
+import { ResearchCard } from '../../components/ResearchCard';
+import {
+  ACTION_STATUSES,
+  ACTIVE_STATUSES,
+  PUBLISHED_STATUSES,
+} from '../../components/PaperStatusChip';
+import { Chip, EmptyState, InlineNotice, Skeleton } from '../../components/ui';
 
 type FilterKey = 'all' | 'active' | 'published' | 'action';
-
-const ACTIVE_STATUSES = new Set([
-  'pending',
-  'pending_faculty',
-  'pending_dean',
-  'pending_program_chair',
-  'pending_editor',
-  'pending_admin',
-]);
-
-const ACTION_STATUSES = new Set(['revision_required', 'rejected']);
-const PUBLISHED_STATUSES = new Set(['approved', 'published']);
 
 const isFilterMatch = (status: PaperStatus, filter: FilterKey) => {
   if (filter === 'all') return true;
@@ -91,149 +87,124 @@ export const MyPapersScreen = () => {
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadData(true)} />}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={() => loadData(true)}
+          tintColor={theme.colors.brand.primary}
+          colors={[theme.colors.brand.primary]}
+        />
+      }
     >
       <Text style={styles.title}>My Papers</Text>
 
-      <TextInput
-        value={query}
-        onChangeText={setQuery}
-        placeholder="Search title, abstract, or keywords"
-        placeholderTextColor="#94a3b8"
-        style={styles.search}
-      />
+      <View style={styles.searchWrap}>
+        <Ionicons name="search-outline" size={18} color={theme.colors.text.muted} />
+        <TextInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Search title, abstract, or keywords"
+          placeholderTextColor={theme.colors.text.disabled}
+          style={styles.searchInput}
+        />
+        {query ? (
+          <Chip label="Clear" active={false} onPress={() => setQuery('')} variant="filter" />
+        ) : null}
+      </View>
 
       <View style={styles.filters}>
-        <FilterChip label="All" active={activeFilter === 'all'} onPress={() => setActiveFilter('all')} />
-        <FilterChip
+        <Chip
+          label="All"
+          variant="filter"
+          active={activeFilter === 'all'}
+          onPress={() => setActiveFilter('all')}
+        />
+        <Chip
           label="In Review"
+          variant="filter"
           active={activeFilter === 'active'}
           onPress={() => setActiveFilter('active')}
+          tone="info"
         />
-        <FilterChip
+        <Chip
           label="Published"
+          variant="filter"
           active={activeFilter === 'published'}
           onPress={() => setActiveFilter('published')}
+          tone="success"
         />
-        <FilterChip
+        <Chip
           label="Needs Action"
+          variant="filter"
           active={activeFilter === 'action'}
           onPress={() => setActiveFilter('action')}
+          tone="danger"
         />
       </View>
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? <InlineNotice tone="danger" message={error} /> : null}
 
       {loading ? (
-        <Text style={styles.loadingText}>Loading papers...</Text>
+        <View style={styles.skeletonList}>
+          <Skeleton height={108} />
+          <Skeleton height={108} />
+          <Skeleton height={108} />
+        </View>
       ) : filtered.length === 0 ? (
-        <Text style={styles.emptyText}>No papers match your current filter.</Text>
+        <EmptyState
+          icon={<Ionicons name="folder-open-outline" size={24} color={theme.colors.text.muted} />}
+          title="No papers found"
+          message="No papers match your current filter."
+        />
       ) : (
         filtered.map((paper) => (
-          <Pressable
+          <ResearchCard
             key={paper.id}
-            style={styles.paperCard}
+            paper={paper}
             onPress={() => navigation.navigate('ResearchDetail', { paperId: paper.id })}
-          >
-            <Text style={styles.paperTitle}>{paper.title}</Text>
-            <Text style={styles.paperMeta}>{statusToLabel(paper.status)}</Text>
-            <Text style={styles.paperMeta}>{formatDate(paperDate(paper))}</Text>
-          </Pressable>
+          />
         ))
       )}
     </ScrollView>
   );
 };
 
-const FilterChip = ({
-  label,
-  active,
-  onPress,
-}: {
-  label: string;
-  active: boolean;
-  onPress: () => void;
-}) => (
-  <Pressable onPress={onPress} style={[styles.filterChip, active ? styles.filterChipActive : null]}>
-    <Text style={[styles.filterLabel, active ? styles.filterLabelActive : null]}>{label}</Text>
-  </Pressable>
-);
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: theme.colors.surface.base,
   },
   content: {
-    padding: 16,
-    gap: 12,
+    padding: theme.spacing.lg,
+    gap: theme.spacing.md,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#0f172a',
+    ...theme.typography.h1,
+    color: theme.colors.text.primary,
   },
-  search: {
+  searchWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
     borderWidth: 1,
-    borderColor: '#cbd5e1',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    color: '#0f172a',
-    backgroundColor: '#ffffff',
+    borderColor: theme.colors.border.strong,
+    borderRadius: theme.radii.md,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    backgroundColor: theme.colors.surface.raised,
+  },
+  searchInput: {
+    flex: 1,
+    ...theme.typography.body,
+    color: theme.colors.text.primary,
+    paddingVertical: 0,
   },
   filters: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: theme.spacing.sm,
   },
-  filterChip: {
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: '#ffffff',
-  },
-  filterChipActive: {
-    backgroundColor: '#1c4d8d',
-    borderColor: '#1c4d8d',
-  },
-  filterLabel: {
-    color: '#334155',
-    fontWeight: '600',
-    fontSize: 12,
-  },
-  filterLabelActive: {
-    color: '#ffffff',
-  },
-  error: {
-    color: '#dc2626',
-    fontSize: 13,
-  },
-  loadingText: {
-    color: '#475569',
-    fontSize: 14,
-  },
-  emptyText: {
-    color: '#64748b',
-    fontSize: 14,
-  },
-  paperCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    padding: 12,
-    gap: 4,
-  },
-  paperTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#0f172a',
-  },
-  paperMeta: {
-    fontSize: 12,
-    color: '#64748b',
+  skeletonList: {
+    gap: theme.spacing.sm,
   },
 });
