@@ -1,6 +1,6 @@
 # [IN PROGRESS] NUcleus Mobile — Implementation Plan: UI Overhaul
 
-> **STATUS: IN PROGRESS** — Phases 1–2 complete. Phases 3–10 not started.
+> **STATUS: IN PROGRESS** — Phases 1–3 complete. Phases 4–10 not started.
 > *This plan describes a UI-only overhaul of the NUcleus Mobile React Native Expo app on branch `feat/ui-overhaul`. It re-grounds every visible surface in the brand identity and the design system defined in [docs/PRODUCT_ROADMAP.md](../PRODUCT_ROADMAP.md), without touching the data layer, navigation contracts, or domain types. The Supabase migration is fully complete and stable; the data path is frozen for the duration of this work.*
 
 **Canonical product context:** [PROJECT_CONTEXT.md](../PROJECT_CONTEXT.md)
@@ -122,7 +122,7 @@ The user's per-screen scope is explicitly the six listed screens (Dashboard, MyP
 
 ## 5. Phased plan
 
-Each phase declares scope, what is explicitly **not** changing, exit criteria, and a status field. Current state: Phases 1–2 are complete; Phases 3–10 are not started.
+Each phase declares scope, what is explicitly **not** changing, exit criteria, and a status field. Current state: Phases 1–3 are complete; Phases 4–10 are not started.
 
 ### Phase 1 — Design system foundation
 
@@ -186,39 +186,32 @@ Each phase declares scope, what is explicitly **not** changing, exit criteria, a
 
 ### Phase 3 — Dashboard overhaul
 
-⏳ **NOT STARTED**
+✅ **COMPLETED (stable)**
 
-**What changes and why**
+**Implementation summary**
 
-Re-implement [src/screens/main/DashboardScreen.tsx](../../src/screens/main/DashboardScreen.tsx) on top of the design system to deliver roadmap [§4.7 Dashboard Experience](../PRODUCT_ROADMAP.md#47-dashboard-experience): "compact overview cards: counts by status, recent activity, and quick links … lightweight analytics: clear numbers and short contextual labels".
+- ✅ Re-implemented [src/screens/main/DashboardScreen.tsx](../../src/screens/main/DashboardScreen.tsx) on design-system primitives and theme tokens with no hex literals.
+- ✅ Replaced the legacy in-screen header copy with the approved greeting: `Welcome back, {firstName}.` with `Welcome back.` fallback when `firstName` is unavailable.
+- ✅ Replaced `LogoutButton` with `IconButton` in the in-screen header row while preserving the `signOut()` call from `useAuth()` unchanged.
+- ✅ Replaced local `StatCard` blocks with `Stat` primitives and kept the existing `stats` memo and count logic unchanged.
+- ✅ Switched status-set usage to centralized imports from [src/components/PaperStatusChip.tsx](../../src/components/PaperStatusChip.tsx): `ACTIVE_STATUSES`, `ACTION_STATUSES`, `PUBLISHED_STATUSES`.
+- ✅ Replaced recent-paper rows with [ResearchCard.tsx](../../src/components/ResearchCard.tsx) and preserved `ResearchDetail` navigation behavior.
+- ✅ Replaced bare loading and empty text states with `Skeleton` and `EmptyState`.
+- ✅ Replaced bare error text with `InlineNotice` and themed the `RefreshControl` (`tintColor` + `colors`) from `theme`.
+- ✅ Extended [src/components/ui/Stat.tsx](../../src/components/ui/Stat.tsx) with a backwards-compatible `tone?: 'default' | 'warning'` prop so "Needs Action" can map to semantic warning tokens.
 
-Visual changes:
+**Implementation decisions**
 
-- Replace inline header with a themed greeting block and a brand `Logo` mark. The current developer-facing subtitle ("Same data as web app, mobile-optimized") is removed.
-- **Copy (approved as working values — subject to fine-tuning, same as the hex values):**
-  - Greeting: `Welcome back, {firstName}.` with a fallback of `Welcome back.` if `firstName` is unavailable from `useAuth()`.
-  - **No subtitle.** The greeting stands alone; the four stat cards immediately follow and carry the at-a-glance information.
-- `LogoutButton` is replaced by a themed `IconButton` (or `Button` `subtle` variant) placed in the screen header. The `signOut()` call from `useAuth()` is preserved verbatim.
-- The four `StatCard` views become four `Stat` primitives. Counts and computation logic (`stats` memo) are unchanged. The `tone="warning"` on "Needs Action" maps to the semantic `state.warning` color, which derives from the accent gold per roadmap §2.
-- Recent papers list uses `ResearchCard`. Empty and loading states use `EmptyState` and `Skeleton`.
-- `RefreshControl` is themed.
+- Logout stayed in the in-screen header row (not navigator `headerRight`) so Dashboard structure remained local and no navigator contracts were touched.
+- `firstName` was derived from `user.fullName` because the domain user shape exposes `fullName` only; fallback behavior is applied when parsing yields no usable token.
+- `loadData`, `useFocusEffect`, `recentPapers` memo, `stats` memo, `researchApi.getMyPapers`, and `ResearchDetail` routing were preserved exactly as required.
 
-Structural and behavioral changes: **none**. `loadData`, `useFocusEffect`, `recentPapers` memo, navigation to `ResearchDetail`, and all data calls (`researchApi.getMyPapers`) are kept exactly as they are.
+**Exit criteria met:**
 
-**Explicitly NOT changing**
-
-- No call to `researchApi` or `useAuth` is altered.
-- No navigation route or param is altered.
-- The set of stats and the way they are computed is unchanged.
-- `useFocusEffect` behavior is unchanged.
-
-**Exit criteria**
-
-- `DashboardScreen` contains no hex literals; all colors, type, spacing, radii, and shadows come from the theme.
-- The screen uses `Stat`, `ResearchCard`, `EmptyState`, `Skeleton`, and `Button` / `IconButton` primitives.
-- Logout still signs the user out and triggers the existing nav transition.
-- `npx tsc --noEmit` passes.
-- Manual smoke: cold start lands on Dashboard, stats compute correctly, recent papers list opens `ResearchDetail`, refresh works.
+- ✅ `DashboardScreen` now consumes theme tokens and shared primitives (`Stat`, `ResearchCard`, `EmptyState`, `Skeleton`, `IconButton`, `InlineNotice`) with no hex literals.
+- ✅ Logout continues to sign out through the same `signOut()` path.
+- ✅ `npx tsc --noEmit` — green.
+- ✅ Required behavior remains unchanged: stats computation, recent-paper navigation, and pull-to-refresh flow.
 
 ---
 
