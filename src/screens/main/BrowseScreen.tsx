@@ -180,7 +180,11 @@ export const BrowseScreen = () => {
         <EmptyState
           icon={<Ionicons name="library-outline" size={24} color={theme.colors.text.muted} />}
           title="No papers found"
-          message="No papers match your filters."
+          message={
+            query.trim()
+              ? `No results for "${query.trim()}"`
+              : 'No papers found in this category'
+          }
         />
       ) : (
         filtered.map((paper) => {
@@ -191,6 +195,8 @@ export const BrowseScreen = () => {
               key={paper.id}
               paper={paper}
               {...(line ? { categoryLine: line } : {})}
+              keywords={paper.keywords ?? undefined}
+              showStatusChip={false}
               showEngagementCounts
               onPress={() => navigation.navigate('ResearchDetail', { paperId: paper.id })}
             />

@@ -261,6 +261,7 @@ Each phase declares scope, what is explicitly **not** changing, exit criteria, a
 - ✅ Extended `ResearchCard` with an optional `categoryLine` prop so Browse can keep the existing `resolveCategoryName` + `UUID_PATTERN` category-resolution path and the prior `Category: …` row copy without changing filter logic.
 - ✅ Replaced bare loading and empty states with `Skeleton` and `EmptyState` (`EmptyState` icon passed as rendered `<Ionicons />`).
 - ✅ Replaced bare error text with `InlineNotice` and themed `RefreshControl` (`tintColor` + `colors`).
+- ✅ Applied pre-commit shared-card polish: `ResearchCard` now supports `showStatusChip` (Browse passes `false`), optional `keywords` chips (capped at four, horizontal), category text above title, icon-based engagement counts, and a compact author avatar initial; Browse also uses contextual empty-state copy (`No results for \"{query}\"` vs category fallback).
 
 **Implementation decisions**
 
