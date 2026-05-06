@@ -9,12 +9,14 @@ interface ResearchCardProps {
   paper: ResearchPaper;
   onPress?: () => void;
   showEngagementCounts?: boolean;
+  categoryLine?: string;
 }
 
 export const ResearchCard = ({
   paper,
   onPress,
   showEngagementCounts = false,
+  categoryLine,
 }: ResearchCardProps) => {
   const body = (
     <View style={styles.content}>
@@ -24,6 +26,11 @@ export const ResearchCard = ({
       <Text style={styles.meta} numberOfLines={1}>
         {getPrimaryAuthorName(paper)}
       </Text>
+      {categoryLine ? (
+        <Text style={styles.meta} numberOfLines={1}>
+          {categoryLine}
+        </Text>
+      ) : null}
       <View style={styles.row}>
         <PaperStatusChip status={paper.status} />
         <Text style={styles.meta}>{formatDate(paperDate(paper))}</Text>

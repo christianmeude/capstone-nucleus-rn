@@ -1,6 +1,6 @@
 # [IN PROGRESS] NUcleus Mobile — Implementation Plan: UI Overhaul
 
-> **STATUS: IN PROGRESS** — Phases 1–4 complete. Phases 5–10 not started.
+> **STATUS: IN PROGRESS** — Phases 1–5 complete. Phases 6–10 not started.
 > *This plan describes a UI-only overhaul of the NUcleus Mobile React Native Expo app on branch `feat/ui-overhaul`. It re-grounds every visible surface in the brand identity and the design system defined in [docs/PRODUCT_ROADMAP.md](../PRODUCT_ROADMAP.md), without touching the data layer, navigation contracts, or domain types. The Supabase migration is fully complete and stable; the data path is frozen for the duration of this work.*
 
 **Canonical product context:** [PROJECT_CONTEXT.md](../PROJECT_CONTEXT.md)
@@ -122,7 +122,7 @@ The user's per-screen scope is explicitly the six listed screens (Dashboard, MyP
 
 ## 5. Phased plan
 
-Each phase declares scope, what is explicitly **not** changing, exit criteria, and a status field. Current state: Phases 1–4 are complete; Phases 5–10 are not started.
+Each phase declares scope, what is explicitly **not** changing, exit criteria, and a status field. Current state: Phases 1–5 are complete; Phases 6–10 are not started.
 
 ### Phase 1 — Design system foundation
 
@@ -249,35 +249,30 @@ Each phase declares scope, what is explicitly **not** changing, exit criteria, a
 
 ### Phase 5 — Browse overhaul
 
-⏳ **NOT STARTED**
+✅ **COMPLETED (stable)**
 
-**What changes and why**
+**Implementation summary**
 
-Re-implement [src/screens/main/BrowseScreen.tsx](../../src/screens/main/BrowseScreen.tsx) for roadmap [§4.2 Research Discovery Experience](../PRODUCT_ROADMAP.md#42-research-discovery-experience): "scannable lists with concise metadata … persistent search and simple filters (category, sort) with immediate visual feedback".
+- ✅ Re-implemented [src/screens/main/BrowseScreen.tsx](../../src/screens/main/BrowseScreen.tsx) on design-system tokens and primitives with no hex literals.
+- ✅ Replaced the developer-facing subtitle with approved copy: title `Repository`, subtitle `Published research from NU-Dasmariñas.`
+- ✅ Replaced the bare search field with a themed search row (leading search icon, clear `Chip`) aligned with Dashboard/MyPapers.
+- ✅ Replaced horizontal category pills with `Chip` primitives, including the leading `All categories` chip.
+- ✅ Replaced list rows with [ResearchCard.tsx](../../src/components/ResearchCard.tsx) using `showEngagementCounts` so view/download counts appear only on Browse (Repository).
+- ✅ Extended `ResearchCard` with an optional `categoryLine` prop so Browse can keep the existing `resolveCategoryName` + `UUID_PATTERN` category-resolution path and the prior `Category: …` row copy without changing filter logic.
+- ✅ Replaced bare loading and empty states with `Skeleton` and `EmptyState` (`EmptyState` icon passed as rendered `<Ionicons />`).
+- ✅ Replaced bare error text with `InlineNotice` and themed `RefreshControl` (`tintColor` + `colors`).
 
-Visual changes:
+**Implementation decisions**
 
-- Header block tightened; the current developer-facing subtitle ("Published papers from the same backend as the web app") is removed.
-- **Copy (approved as working values — subject to fine-tuning, same as the hex values):**
-  - Screen title: `Repository` (kept distinct from the tab label `Browse` for editorial weight).
-  - Subtitle: `Published research from NU-Dasmariñas.`
-- Category filter row uses `Chip` primitives, including the leading "All categories" chip.
-- Each result row uses `ResearchCard`, which already shows author, category (resolved via existing `resolveCategoryName`), date, and view/download counts.
-- Empty and loading states use `EmptyState` and `Skeleton`.
+- `loadData`, `useFocusEffect`, `filtered` memo (category filter + free-text search + sort), `UUID_PATTERN`, `resolveCategoryName`, and `ResearchDetail` navigation were preserved; only layout and styling changed.
+- `ResearchCard`’s `categoryLine` is optional and unused by Dashboard/MyPapers so other tabs stay unchanged.
 
-**Explicitly NOT changing**
+**Exit criteria met:**
 
-- `researchApi.getPublishedPapers` and `researchApi.getCategories` are unchanged.
-- The `UUID_PATTERN` category-resolution heuristic is unchanged.
-- The `filtered` memo (category filter + free-text search + sort) is functionally unchanged.
-- Navigation to `ResearchDetail` is unchanged.
-
-**Exit criteria**
-
-- `BrowseScreen` contains no hex literals; uses theme + primitives + `ResearchCard`.
-- Category filter, free-text search, and sort behavior are identical to current.
-- `npx tsc --noEmit` passes.
-- Manual smoke: search filters list, category chip toggles, refresh works, tap opens detail.
+- ✅ `BrowseScreen` uses theme + `Chip` + `ResearchCard` + `Skeleton` + `EmptyState` + `InlineNotice` with no hex literals.
+- ✅ Browse is the only screen passing `showEngagementCounts` on `ResearchCard`.
+- ✅ `npx tsc --noEmit` — green.
+- ✅ Category chips, search, sort, refresh, and row navigation behavior match the pre-overhaul semantics.
 
 ---
 

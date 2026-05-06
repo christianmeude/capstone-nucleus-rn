@@ -1,6 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
 import {
-  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -8,10 +7,14 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { researchApi } from '../../api/research';
 import { Category, ResearchPaper } from '../../types/domain';
-import { formatDate, getPrimaryAuthorName, paperDate } from '../../utils/format';
+import { getPrimaryAuthorName, paperDate } from '../../utils/format';
+import { theme } from '../../theme';
+import { ResearchCard } from '../../components/ResearchCard';
+import { Chip, EmptyState, InlineNotice, Skeleton } from '../../components/ui';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -69,6 +72,21 @@ export const BrowseScreen = () => {
     [categoryNameById]
   );
 
+  /** Display-only: omit category row when nothing resolves to a real name (no "General" placeholder). */
+  const categoryLineForDisplay = useCallback(
+    (value?: string | null): string | null => {
+      if (!value) return null;
+      if (categoryNameById.has(value)) {
+        const name = categoryNameById.get(value);
+        if (!name || !name.trim()) return null;
+        return `Category: ${name}`;
+      }
+      if (!UUID_PATTERN.test(value)) return `Category: ${value}`;
+      return null;
+    },
+    [categoryNameById]
+  );
+
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
 
@@ -95,155 +113,147 @@ export const BrowseScreen = () => {
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadData(true)} />}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={() => loadData(true)}
+          tintColor={theme.colors.brand.primary}
+          colors={[theme.colors.brand.primary]}
+        />
+      }
     >
-      <Text style={styles.title}>Repository</Text>
-      <Text style={styles.subtitle}>Published papers from the same backend as the web app.</Text>
+      <Text style={styles.title}>Browse</Text>
 
-      <TextInput
-        value={query}
-        onChangeText={setQuery}
-        placeholder="Search title, author, abstract, or keywords"
-        placeholderTextColor="#94a3b8"
-        style={styles.search}
-      />
+      <View style={styles.searchWrap}>
+        <Ionicons
+          name="search-outline"
+          size={18}
+          color={theme.colors.text.muted}
+          style={styles.searchIcon}
+        />
+        <TextInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Search by title, author, or keyword"
+          placeholderTextColor={theme.colors.text.disabled}
+          style={styles.searchInput}
+        />
+        <View
+          pointerEvents={query.trim() ? 'auto' : 'none'}
+          style={query.trim() ? styles.clearVisible : styles.clearHidden}
+        >
+          <Chip label="Clear" active={false} onPress={() => setQuery('')} variant="filter" />
+        </View>
+      </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
-        <FilterChip
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.filters}
+      >
+        <Chip
           label="All categories"
+          variant="filter"
           active={categoryFilter === ''}
           onPress={() => setCategoryFilter('')}
         />
         {categories.map((category) => (
-          <FilterChip
+          <Chip
             key={category.id}
             label={category.name}
+            variant="filter"
             active={categoryFilter === category.id}
             onPress={() => setCategoryFilter(category.id)}
           />
         ))}
       </ScrollView>
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? <InlineNotice tone="danger" message={error} /> : null}
 
       {loading ? (
-        <Text style={styles.loadingText}>Loading published papers...</Text>
+        <View style={styles.skeletonList}>
+          <Skeleton height={108} />
+          <Skeleton height={108} />
+          <Skeleton height={108} />
+        </View>
       ) : filtered.length === 0 ? (
-        <Text style={styles.emptyText}>No papers match your filters.</Text>
+        <EmptyState
+          icon={<Ionicons name="library-outline" size={24} color={theme.colors.text.muted} />}
+          title="No papers found"
+          message="No papers match your filters."
+        />
       ) : (
-        filtered.map((paper) => (
-          <Pressable
-            key={paper.id}
-            style={styles.paperCard}
-            onPress={() => navigation.navigate('ResearchDetail', { paperId: paper.id })}
-          >
-            <Text style={styles.paperTitle}>{paper.title}</Text>
-            <Text style={styles.paperMeta}>Author: {getPrimaryAuthorName(paper)}</Text>
-            <Text style={styles.paperMeta}>Category: {resolveCategoryName(paper.category)}</Text>
-            <Text style={styles.paperMeta}>Published: {formatDate(paperDate(paper))}</Text>
-            <Text style={styles.paperMeta}>
-              Views {paper.view_count || 0} • Downloads {paper.download_count || 0}
-            </Text>
-          </Pressable>
-        ))
+        filtered.map((paper) => {
+          const line = categoryLineForDisplay(paper.category);
+
+          return (
+            <ResearchCard
+              key={paper.id}
+              paper={paper}
+              {...(line ? { categoryLine: line } : {})}
+              showEngagementCounts
+              onPress={() => navigation.navigate('ResearchDetail', { paperId: paper.id })}
+            />
+          );
+        })
       )}
     </ScrollView>
   );
 };
 
-const FilterChip = ({
-  label,
-  active,
-  onPress,
-}: {
-  label: string;
-  active: boolean;
-  onPress: () => void;
-}) => (
-  <Pressable onPress={onPress} style={[styles.filterChip, active ? styles.filterChipActive : null]}>
-    <Text style={[styles.filterLabel, active ? styles.filterLabelActive : null]}>{label}</Text>
-  </Pressable>
-);
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: theme.colors.surface.base,
   },
   content: {
-    padding: 16,
-    gap: 12,
+    padding: theme.spacing.lg,
+    gap: theme.spacing.md,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#0f172a',
+    ...theme.typography.h1,
+    color: theme.colors.text.primary,
   },
-  subtitle: {
-    color: '#475569',
-    fontSize: 13,
-  },
-  search: {
+  searchWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 44,
     borderWidth: 1,
-    borderColor: '#cbd5e1',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    color: '#0f172a',
-    backgroundColor: '#ffffff',
+    borderColor: theme.colors.border.strong,
+    borderRadius: theme.radii.md,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 0,
+    backgroundColor: theme.colors.surface.raised,
+  },
+  searchInput: {
+    flex: 1,
+    height: 24,
+    ...theme.typography.body,
+    color: theme.colors.text.primary,
+    paddingVertical: 0,
+    textAlign: 'left',
+    textAlignVertical: 'center',
+    includeFontPadding: false,
+  },
+  searchIcon: {
+    marginRight: theme.spacing.sm,
+  },
+  clearVisible: {
+    marginLeft: theme.spacing.sm,
+    width: 'auto',
+    overflow: 'visible',
+  },
+  clearHidden: {
+    width: 0,
+    overflow: 'hidden',
   },
   filters: {
     flexDirection: 'row',
-    gap: 8,
-    paddingRight: 12,
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+    paddingRight: theme.spacing.md,
   },
-  filterChip: {
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    backgroundColor: '#ffffff',
-  },
-  filterChipActive: {
-    backgroundColor: '#1c4d8d',
-    borderColor: '#1c4d8d',
-  },
-  filterLabel: {
-    color: '#334155',
-    fontWeight: '600',
-    fontSize: 12,
-  },
-  filterLabelActive: {
-    color: '#ffffff',
-  },
-  error: {
-    color: '#dc2626',
-    fontSize: 13,
-  },
-  loadingText: {
-    color: '#475569',
-    fontSize: 14,
-  },
-  emptyText: {
-    color: '#64748b',
-    fontSize: 14,
-  },
-  paperCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    padding: 12,
-    gap: 4,
-  },
-  paperTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#0f172a',
-  },
-  paperMeta: {
-    fontSize: 12,
-    color: '#64748b',
+  skeletonList: {
+    gap: theme.spacing.sm,
   },
 });
