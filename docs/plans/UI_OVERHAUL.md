@@ -199,6 +199,7 @@ Each phase declares scope, what is explicitly **not** changing, exit criteria, a
 - ✅ Replaced bare loading and empty text states with `Skeleton` and `EmptyState`.
 - ✅ Replaced bare error text with `InlineNotice` and themed the `RefreshControl` (`tintColor` + `colors`) from `theme`.
 - ✅ Extended [src/components/ui/Stat.tsx](../../src/components/ui/Stat.tsx) with a backwards-compatible `tone?: 'default' | 'warning'` prop so "Needs Action" can map to semantic warning tokens.
+- ✅ Post-commit label consistency correction: Dashboard stats now show `Approved` (was `Published`) and `Revision Required` (was `Needs Action`) to match Phase 4 terminology.
 
 **Implementation decisions**
 

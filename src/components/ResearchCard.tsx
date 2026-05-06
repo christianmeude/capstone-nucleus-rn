@@ -3,16 +3,19 @@ import { PressableCard } from './ui/Card';
 import { ResearchPaper } from '../types/domain';
 import { formatDate, getPrimaryAuthorName, paperDate } from '../utils/format';
 import { theme } from '../theme';
-import { PaperStatusChip, PUBLISHED_STATUSES } from './PaperStatusChip';
+import { PaperStatusChip } from './PaperStatusChip';
 
 interface ResearchCardProps {
   paper: ResearchPaper;
   onPress?: () => void;
+  showEngagementCounts?: boolean;
 }
 
-export const ResearchCard = ({ paper, onPress }: ResearchCardProps) => {
-  const showEngagementCounts = PUBLISHED_STATUSES.has(paper.status);
-
+export const ResearchCard = ({
+  paper,
+  onPress,
+  showEngagementCounts = false,
+}: ResearchCardProps) => {
   const body = (
     <View style={styles.content}>
       <Text style={styles.title} numberOfLines={2}>
@@ -25,7 +28,7 @@ export const ResearchCard = ({ paper, onPress }: ResearchCardProps) => {
         <PaperStatusChip status={paper.status} />
         <Text style={styles.meta}>{formatDate(paperDate(paper))}</Text>
       </View>
-      {showEngagementCounts ? (
+      {showEngagementCounts === true ? (
         <Text style={styles.meta}>
           Views {paper.view_count || 0} • Downloads {paper.download_count || 0}
         </Text>

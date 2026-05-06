@@ -7,7 +7,7 @@ const STATUS_LABELS: Record<string, string> = {
   pending_program_chair: 'With Program Chair',
   pending_editor: 'With Editor',
   pending_admin: 'With Admin',
-  approved: 'Published',
+  approved: 'Approved',
   published: 'Published',
   rejected: 'Rejected',
   revision_required: 'Revision Required',

@@ -129,10 +129,10 @@ export const DashboardScreen = () => {
           <Stat label="In Review" value={stats.active} />
         </View>
         <View style={styles.statItem}>
-          <Stat label="Published" value={stats.published} />
+          <Stat label="Approved" value={stats.published} />
         </View>
         <View style={styles.statItem}>
-          <Stat label="Needs Action" value={stats.needsAction} tone="warning" />
+          <Stat label="Revision Required" value={stats.needsAction} tone="warning" />
         </View>
       </View>
 
