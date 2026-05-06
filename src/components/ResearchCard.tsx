@@ -90,12 +90,16 @@ export const ResearchCard = ({
 
   if (onPress) {
     return (
-      <PressableCard onPress={onPress} accessibilityLabel={`Open paper: ${paper.title}`}>
+      <PressableCard
+        onPress={onPress}
+        accessibilityLabel={`Open paper: ${paper.title}`}
+        style={theme.shadows.level2}
+      >
         {body}
       </PressableCard>
     );
   }
-  return <View style={styles.readOnly}>{body}</View>;
+  return <View style={[styles.readOnly, theme.shadows.level2]}>{body}</View>;
 };
 
 const styles = StyleSheet.create({

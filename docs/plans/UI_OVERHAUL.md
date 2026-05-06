@@ -254,10 +254,10 @@ Each phase declares scope, what is explicitly **not** changing, exit criteria, a
 **Implementation summary**
 
 - ✅ Re-implemented [src/screens/main/BrowseScreen.tsx](../../src/screens/main/BrowseScreen.tsx) on design-system tokens and primitives with no hex literals.
-- ✅ Replaced the developer-facing subtitle with approved copy: title `Repository`, subtitle `Published research from NU-Dasmariñas.`
+- ✅ Updated Browse header copy from the earlier `Repository` draft to the finalized in-app `Browse` title with no subtitle.
 - ✅ Replaced the bare search field with a themed search row (leading search icon, clear `Chip`) aligned with Dashboard/MyPapers.
 - ✅ Replaced horizontal category pills with `Chip` primitives, including the leading `All categories` chip.
-- ✅ Replaced list rows with [ResearchCard.tsx](../../src/components/ResearchCard.tsx) using `showEngagementCounts` so view/download counts appear only on Browse (Repository).
+- ✅ Replaced list rows with [ResearchCard.tsx](../../src/components/ResearchCard.tsx) using `showEngagementCounts` so view/download counts appear only on Browse.
 - ✅ Extended `ResearchCard` with an optional `categoryLine` prop so Browse can keep the existing `resolveCategoryName` + `UUID_PATTERN` category-resolution path and the prior `Category: …` row copy without changing filter logic.
 - ✅ Replaced bare loading and empty states with `Skeleton` and `EmptyState` (`EmptyState` icon passed as rendered `<Ionicons />`).
 - ✅ Replaced bare error text with `InlineNotice` and themed `RefreshControl` (`tintColor` + `colors`).
