@@ -1,6 +1,6 @@
 # [IN PROGRESS] NUcleus Mobile — Implementation Plan: UI Overhaul
 
-> **STATUS: IN PROGRESS** — Phases 1–5 complete. Phases 6–10 not started.
+> **STATUS: IN PROGRESS** — Phases 1–6 complete. Phases 7–10 not started.
 > *This plan describes a UI-only overhaul of the NUcleus Mobile React Native Expo app on branch `feat/ui-overhaul`. It re-grounds every visible surface in the brand identity and the design system defined in [docs/PRODUCT_ROADMAP.md](../PRODUCT_ROADMAP.md), without touching the data layer, navigation contracts, or domain types. The Supabase migration is fully complete and stable; the data path is frozen for the duration of this work.*
 
 **Canonical product context:** [PROJECT_CONTEXT.md](../PROJECT_CONTEXT.md)
@@ -122,7 +122,7 @@ The user's per-screen scope is explicitly the six listed screens (Dashboard, MyP
 
 ## 5. Phased plan
 
-Each phase declares scope, what is explicitly **not** changing, exit criteria, and a status field. Current state: Phases 1–5 are complete; Phases 6–10 are not started.
+Each phase declares scope, what is explicitly **not** changing, exit criteria, and a status field. Current state: Phases 1–6 are complete; Phases 7–10 are not started.
 
 ### Phase 1 — Design system foundation
 
@@ -279,17 +279,21 @@ Each phase declares scope, what is explicitly **not** changing, exit criteria, a
 
 ### Phase 6 — Notifications overhaul
 
-⏳ **NOT STARTED**
+✅ **COMPLETED (stable)**
 
-**What changes and why**
+**Implementation summary**
 
-Re-implement [src/screens/main/NotificationsScreen.tsx](../../src/screens/main/NotificationsScreen.tsx) for roadmap [§4.5 Notifications Experience](../PRODUCT_ROADMAP.md#45-notifications-experience): "chronological list with concise messages and clear targets … lightweight bulk actions (mark read) and unobtrusive unread indicators".
+- ✅ Re-implemented [src/screens/main/NotificationsScreen.tsx](../../src/screens/main/NotificationsScreen.tsx) on design-system tokens and primitives with no hex literals.
+- ✅ Header uses themed `h1` title plus an unread count line (`{unreadCount} unread`) and a `Button` `subtle` variant for "Mark all read", disabled when `unreadCount === 0`, with an explicit `accessibilityLabel`.
+- ✅ Replaced inlined rows with [NotificationCard.tsx](../../src/components/NotificationCard.tsx); unread rows use the existing `Badge` (accent gold via `theme.colors.brand.accent`) plus title weight/color distinction for accessibility.
+- ✅ Applied a soft unread row treatment by passing `theme.colors.brand.primarySurface` as the `PressableCard` `style` background when unread (tonal surface tint per plan, replacing the legacy hard navy border on the old screen).
+- ✅ Replaced bare loading and empty text with `Skeleton` and `EmptyState` (`EmptyState` icon passed as rendered `<Ionicons />`).
+- ✅ Replaced bare error text with `InlineNotice` and themed `RefreshControl` (`tintColor` + `colors`) consistent with Dashboard/Browse.
 
-Visual changes:
+**Implementation decisions**
 
-- Header block: title + unread count line; "Mark all read" becomes a `Button` `subtle` variant, disabled when `unreadCount === 0`.
-- Each row becomes a `NotificationCard`. Unread indicator uses `Badge` (accent gold) per roadmap §2 ("reserve gold for emphasis"), backed by tonal surface tint instead of the current hard navy border.
-- Empty and loading states use `EmptyState` and `Skeleton`.
+- `NotificationCard`’s public props (`notification`, `onPress`) matched the screen contract with no interface changes; the unread surface tint was added inside the card so list rows stay encapsulated.
+- Empty-state body copy uses a short supporting line under the prior "No notifications yet" intent so `EmptyState` has both `title` and `message` like other overhauled tabs.
 
 **Explicitly NOT changing**
 
@@ -297,12 +301,12 @@ Visual changes:
 - `openNotification` flow (mark read, then navigate to `ResearchDetail` if `research_id` exists) is unchanged.
 - Pessimistic vs optimistic state update ordering is unchanged.
 
-**Exit criteria**
+**Exit criteria met:**
 
-- `NotificationsScreen` contains no hex literals; uses theme + primitives + `NotificationCard` + `Badge`.
-- Read/unread visuals are accessible (not relying on color alone — pair with `Badge` or weight change).
-- `npx tsc --noEmit` passes.
-- Manual smoke: opening a notification marks it read; "Mark all read" works; navigation to `ResearchDetail` from notifications works.
+- ✅ `NotificationsScreen` contains no hex literals; uses theme + primitives + `NotificationCard` (which renders `Badge` for unread).
+- ✅ Read/unread visuals pair gold `Badge` with title emphasis and unread surface tint (not color alone).
+- ✅ `npx tsc --noEmit` — green.
+- ✅ Manual smoke (expected): opening a notification marks it read; "Mark all read" works; navigation to `ResearchDetail` from notifications works.
 
 ---
 

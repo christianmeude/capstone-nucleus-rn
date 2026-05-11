@@ -14,7 +14,11 @@ export const NotificationCard = ({ notification, onPress }: NotificationCardProp
   const unread = !notification.is_read;
 
   return (
-    <PressableCard onPress={onPress} accessibilityLabel={notification.title || 'Notification'}>
+    <PressableCard
+      onPress={onPress}
+      accessibilityLabel={notification.title || 'Notification'}
+      style={unread ? { backgroundColor: theme.colors.brand.primarySurface } : undefined}
+    >
       <View style={styles.topRow}>
         <Text style={[styles.title, unread ? styles.unreadTitle : null]}>
           {notification.title || 'Notification'}
