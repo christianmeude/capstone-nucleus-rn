@@ -1,6 +1,6 @@
 # [IN PROGRESS] NUcleus Mobile — Implementation Plan: UI Overhaul
 
-> **STATUS: IN PROGRESS** — Phases 1–6 complete. Phases 7–10 not started.
+> **STATUS: IN PROGRESS** — Phases 1–7 complete. Phases 8–10 not started.
 > *This plan describes a UI-only overhaul of the NUcleus Mobile React Native Expo app on branch `feat/ui-overhaul`. It re-grounds every visible surface in the brand identity and the design system defined in [docs/PRODUCT_ROADMAP.md](../PRODUCT_ROADMAP.md), without touching the data layer, navigation contracts, or domain types. The Supabase migration is fully complete and stable; the data path is frozen for the duration of this work.*
 
 **Canonical product context:** [PROJECT_CONTEXT.md](../PROJECT_CONTEXT.md)
@@ -122,7 +122,7 @@ The user's per-screen scope is explicitly the six listed screens (Dashboard, MyP
 
 ## 5. Phased plan
 
-Each phase declares scope, what is explicitly **not** changing, exit criteria, and a status field. Current state: Phases 1–6 are complete; Phases 7–10 are not started.
+Each phase declares scope, what is explicitly **not** changing, exit criteria, and a status field. Current state: Phases 1–7 are complete; Phases 8–10 are not started.
 
 ### Phase 1 — Design system foundation
 
@@ -312,19 +312,28 @@ Each phase declares scope, what is explicitly **not** changing, exit criteria, a
 
 ### Phase 7 — Invitations overhaul
 
-⏳ **NOT STARTED**
+✅ **COMPLETED (stable)**
 
-**What changes and why**
+**Implementation summary**
 
-Re-implement [src/screens/main/InvitationsScreen.tsx](../../src/screens/main/InvitationsScreen.tsx) for roadmap [§4.6 Invitations Experience](../PRODUCT_ROADMAP.md#46-invitations-experience): "clear invitation card with inviter, paper summary, and action affordances (accept/decline) … make decisions low-friction and confidence-building".
+- ✅ Re-implemented [src/screens/main/InvitationsScreen.tsx](../../src/screens/main/InvitationsScreen.tsx) on design-system tokens and primitives with no hex literals.
+- ✅ Replaced inlined invitation rows with [InvitationCard.tsx](../../src/components/InvitationCard.tsx) (`acting` boolean, Accept `primary` / Decline `secondary` unchanged inside the card). An interim three-`Stat` summary row was removed in post–Phase 7 refinements in favor of a pending-count subtitle (see below).
+- ✅ Replaced bare loading and empty text with `Skeleton` and `EmptyState` (`EmptyState` icon passed as rendered `<Ionicons />`).
+- ✅ Replaced bare error text with `InlineNotice` and themed `RefreshControl` (`tintColor` + `colors`) consistent with Notifications.
+- ✅ For calendar-expired **pending** invitations, the screen passes a display-only invitation object with `status: 'expired'` into `InvitationCard` so status presentation and action visibility match the legacy screen (no Accept/Decline) without mutating list state or `counts` (still derived from API rows).
 
-Visual changes:
+**Post–Phase 7 refinements (Invitation UX)**
 
-- Three `StatCard`s become `Stat` primitives for `Pending`, `Accepted`, `Closed`.
-- Each invitation becomes an `InvitationCard` rendering the research title, inviter, expiry, and a `PaperStatusChip` reflecting `pending` / `accepted` / `declined` / `expired`.
-- Accept and decline buttons use the `Button` primitive: `primary` for Accept, `secondary` (or `danger` tone) for Decline. Loading state on the in-flight action uses the primitive's loading state.
-- Empty and loading states use `EmptyState` and `Skeleton`.
-- Optional confirmation for Decline via `BottomSheet` (per roadmap §5: "prefer bottom sheets for contextual actions"). If added, it must not introduce extra friction for Accept.
+- ✅ [InvitationCard.tsx](../../src/components/InvitationCard.tsx): removed `PaperStatusChip`; status is shown as a **row with a 7×7 dot** (`dotColorForStatus`: gold / green / red / muted / subtle fallback, preserved for future reuse) plus a **metadata-styled label** (`Pending`, `Accepted`, `Declined`, `Expired`, or first-letter–capitalized fallback).
+- ✅ [InvitationCard.tsx](../../src/components/InvitationCard.tsx): **metadata order** — title → status dot row → `Invited by:` → `Invited:` + `created_at` when defined (all statuses) → `Expires:` for `pending` only → `Expired:` for `expired` only; **non-`pending` cards** use a single inner wrapper at **`opacity: 0.5`** so action rows stay unchanged when shown.
+- ✅ Further refinement: **removed the left border accent** on `Card` (no `style` override on `Card`; no `accentColorForStatus` / border width constants).
+- ✅ [InvitationsScreen.tsx](../../src/screens/main/InvitationsScreen.tsx): removed the three **`Stat`** summary row; added a **subtitle** under the screen title driven by `counts.pending` (`1 pending invitation` / `{n} pending invitations` / `No pending invitations`), styled like `NotificationsScreen` (`bodySmall`, `text.secondary`, `marginTop: spacing.xs`).
+
+**Implementation decisions**
+
+- `InvitationCard` only gates actions on `invitation.status === 'pending'`, so expired-by-date rows that still arrive as `pending` from the API need a screen-level display override; handlers are omitted when `!canAct` for clarity.
+- Decline confirmation `BottomSheet` remains deferred (optional in the plan); Accept/Decline stay one-tap per prior low-friction scope.
+- Empty-state title preserves the prior single-line intent (`No invitations available`) with a short supporting `message`.
 
 **Explicitly NOT changing**
 
@@ -333,12 +342,12 @@ Visual changes:
 - The `isExpired` heuristic is unchanged.
 - The `counts` memo grouping (`pending` / `accepted` / `closed`) is unchanged.
 
-**Exit criteria**
+**Exit criteria met:**
 
-- `InvitationsScreen` contains no hex literals; uses theme + primitives + `InvitationCard` + `Stat` + `PaperStatusChip`.
-- Accept and decline still persist correctly and the list reloads after either action.
-- `npx tsc --noEmit` passes.
-- Manual smoke: accept and decline both update the database and the visible list; expired pending invitations show as expired and have no action buttons.
+- ✅ `InvitationsScreen` contains no hex literals; uses theme + primitives + `InvitationCard` (status dot + label, conditional date lines, muted non-pending cards; summary stats row removed in favor of a pending-count subtitle).
+- ✅ Accept and decline still persist via the same API paths and list reload; acting row gates button disabled state.
+- ✅ `npx tsc --noEmit` — green.
+- ✅ Manual smoke (expected): accept/decline update data and UI; expired pending rows show no actions and an expired status presentation.
 
 ---
 
