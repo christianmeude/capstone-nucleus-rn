@@ -1,6 +1,8 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
+import { theme } from '../../theme';
+import { Button } from '../../components/ui';
 
 export const UnsupportedRoleScreen = () => {
   const { user, signOut } = useAuth();
@@ -12,9 +14,7 @@ export const UnsupportedRoleScreen = () => {
         <Text style={styles.description}>
           This mobile app currently supports student workflows only. Signed in role: {user?.role}
         </Text>
-        <Pressable onPress={signOut} style={styles.button}>
-          <Text style={styles.buttonLabel}>Sign out</Text>
-        </Pressable>
+        <Button label="Sign out" onPress={signOut} />
       </View>
     </SafeAreaView>
   );
@@ -23,36 +23,20 @@ export const UnsupportedRoleScreen = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: theme.colors.surface.base,
   },
   container: {
     flex: 1,
     justifyContent: 'center',
-    padding: 24,
-    gap: 14,
+    padding: theme.spacing.xl,
+    gap: theme.spacing.md,
   },
   title: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#0f172a',
+    ...theme.typography.h1,
+    color: theme.colors.text.primary,
   },
   description: {
-    color: '#475569',
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  button: {
-    marginTop: 10,
-    backgroundColor: '#1c4d8d',
-    borderRadius: 10,
-    minHeight: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-  },
-  buttonLabel: {
-    color: '#ffffff',
-    fontWeight: '700',
-    fontSize: 15,
+    ...theme.typography.body,
+    color: theme.colors.text.secondary,
   },
 });

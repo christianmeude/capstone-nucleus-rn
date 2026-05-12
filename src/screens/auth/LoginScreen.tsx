@@ -1,9 +1,7 @@
 import { useState } from 'react';
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   StyleSheet,
   Text,
   TextInput,
@@ -11,6 +9,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
+import { theme } from '../../theme';
+import { Button, Logo } from '../../components/ui';
 
 export const LoginScreen = () => {
   const { signIn } = useAuth();
@@ -43,6 +43,7 @@ export const LoginScreen = () => {
         behavior={Platform.select({ ios: 'padding', android: undefined })}
       >
         <View style={styles.card}>
+          <Logo size="sm" />
           <Text style={styles.title}>NUcleus Mobile</Text>
           <Text style={styles.subtitle}>
             Student workflow access (submission excluded)
@@ -54,7 +55,7 @@ export const LoginScreen = () => {
               autoCapitalize="none"
               keyboardType="email-address"
               placeholder="student@example.com"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor={theme.colors.text.disabled}
               style={styles.input}
               value={email}
               onChangeText={setEmail}
@@ -66,7 +67,7 @@ export const LoginScreen = () => {
             <TextInput
               secureTextEntry
               placeholder="Enter your password"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor={theme.colors.text.disabled}
               style={styles.input}
               value={password}
               onChangeText={setPassword}
@@ -75,13 +76,7 @@ export const LoginScreen = () => {
 
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
-          <Pressable style={styles.button} onPress={onSubmit} disabled={submitting}>
-            {submitting ? (
-              <ActivityIndicator color="#ffffff" />
-            ) : (
-              <Text style={styles.buttonLabel}>Sign in</Text>
-            )}
-          </Pressable>
+          <Button label="Sign in" onPress={onSubmit} loading={submitting} disabled={submitting} />
 
           <Text style={styles.note}>
             This app is student-only and supports viewing workflow progress, notifications, and
@@ -96,66 +91,55 @@ export const LoginScreen = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: theme.colors.surface.base,
   },
   container: {
     flex: 1,
     justifyContent: 'center',
-    padding: 20,
+    padding: theme.spacing.xl,
   },
   card: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 20,
-    gap: 14,
+    backgroundColor: theme.colors.surface.raised,
+    borderRadius: theme.radii.lg,
+    padding: theme.spacing.xl,
+    gap: theme.spacing.md,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: theme.colors.border.subtle,
   },
   title: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#0f172a',
+    ...theme.typography.h1,
+    color: theme.colors.text.primary,
+    textAlign: 'center',
   },
   subtitle: {
-    color: '#475569',
-    fontSize: 14,
+    ...theme.typography.bodySmall,
+    color: theme.colors.text.secondary,
+    textAlign: 'center',
   },
   formGroup: {
-    gap: 6,
+    gap: theme.spacing.xs,
   },
   label: {
-    fontSize: 13,
-    color: '#334155',
-    fontWeight: '600',
+    ...theme.typography.label,
+    color: theme.colors.text.secondary,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#cbd5e1',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 15,
-    color: '#0f172a',
-  },
-  button: {
-    backgroundColor: '#1c4d8d',
-    minHeight: 44,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buttonLabel: {
-    color: '#ffffff',
-    fontWeight: '700',
-    fontSize: 15,
+    borderColor: theme.colors.border.strong,
+    borderRadius: theme.radii.md,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    ...theme.typography.body,
+    color: theme.colors.text.primary,
+    backgroundColor: theme.colors.surface.raised,
   },
   error: {
-    color: '#dc2626',
-    fontSize: 13,
+    ...theme.typography.bodySmall,
+    color: theme.colors.state.danger,
   },
   note: {
-    color: '#64748b',
-    fontSize: 12,
-    lineHeight: 18,
+    ...theme.typography.caption,
+    color: theme.colors.text.muted,
+    textAlign: 'center',
   },
 });

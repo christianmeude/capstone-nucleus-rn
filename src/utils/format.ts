@@ -2,12 +2,15 @@ import { PaperStatus, ResearchPaper, StructuredAuthorEntry } from '../types/doma
 
 const STATUS_LABELS: Record<string, string> = {
   pending: 'Pending',
+  accepted: 'Accepted',
+  declined: 'Declined',
+  expired: 'Expired',
   pending_faculty: 'With Adviser',
   pending_dean: 'With Dean',
   pending_program_chair: 'With Program Chair',
   pending_editor: 'With Editor',
   pending_admin: 'With Admin',
-  approved: 'Published',
+  approved: 'Approved',
   published: 'Published',
   rejected: 'Rejected',
   revision_required: 'Revision Required',
@@ -107,4 +110,16 @@ export const normalizeAuthorEntries = (paper: ResearchPaper): StructuredAuthorEn
   }
 
   return [];
+};
+
+export const listCoAuthorNames = (paper: ResearchPaper): string => {
+  const structured = Array.isArray(paper.structured_authors)
+    ? paper.structured_authors
+    : [];
+  const names = structured
+    .filter((e) => !e?.is_primary)
+    .map((e) => e?.author?.fullName || e?.author?.name)
+    .filter(Boolean) as string[];
+  if (names.length === 0) return 'None';
+  return names.join(', ');
 };

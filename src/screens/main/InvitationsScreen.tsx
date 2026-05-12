@@ -1,16 +1,19 @@
 import { useCallback, useMemo, useState } from 'react';
 import {
-  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { invitationsApi } from '../../api/invitations';
 import { CoAuthorInvitation } from '../../types/domain';
-import { formatDate } from '../../utils/format';
+import { InvitationCard } from '../../components/InvitationCard';
+import { ListEntranceItem } from '../../components/ListEntranceItem';
+import { theme } from '../../theme';
+import { EmptyState, InlineNotice, Skeleton } from '../../components/ui';
 
 export const InvitationsScreen = () => {
   const [invitations, setInvitations] = useState<CoAuthorInvitation[]>([]);
@@ -62,6 +65,15 @@ export const InvitationsScreen = () => {
     return new Date(invitation.expires_at).getTime() < Date.now();
   };
 
+  const pendingSubtitle = useMemo(() => {
+    const n = invitations.filter(
+      (inv) => inv.status === 'pending' && !isExpired(inv)
+    ).length;
+    if (n === 1) return '1 pending invitation';
+    if (n > 1) return `${n} pending invitations`;
+    return 'No pending invitations';
+  }, [invitations]);
+
   const runAction = async (token: string, action: 'accept' | 'decline') => {
     setActingToken(token);
     setError('');
@@ -85,153 +97,97 @@ export const InvitationsScreen = () => {
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadData(true)} />}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={() => loadData(true)}
+          tintColor={theme.colors.brand.primary}
+          colors={[theme.colors.brand.primary]}
+        />
+      }
     >
-      <Text style={styles.title}>Co-author Invites</Text>
-
-      <View style={styles.statsRow}>
-        <StatCard label="Pending" value={counts.pending} />
-        <StatCard label="Accepted" value={counts.accepted} />
-        <StatCard label="Closed" value={counts.closed} />
+      <View style={styles.headerBlock}>
+        <Text style={styles.title}>Co-author Invites</Text>
+        <Text style={styles.subtitle}>{pendingSubtitle}</Text>
       </View>
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? <InlineNotice tone="danger" message={error} /> : null}
 
       {loading ? (
-        <Text style={styles.loadingText}>Loading invitations...</Text>
+        <View style={styles.skeletonList}>
+          <Skeleton height={132} />
+          <Skeleton height={132} />
+          <Skeleton height={132} />
+        </View>
       ) : invitations.length === 0 ? (
-        <Text style={styles.emptyText}>No invitations available.</Text>
+        <EmptyState
+          icon={
+            <Ionicons
+              name="mail-open-outline"
+              size={24}
+              color={theme.colors.text.muted}
+            />
+          }
+          title="No invitations available"
+          message="Co-author invitations you receive will appear here."
+        />
       ) : (
-        invitations.map((invitation) => {
-          const expired = invitation.status === 'pending' && isExpired(invitation);
+        <View style={styles.list}>
+          {invitations.map((invitation, index) => {
+            const calendarExpired =
+              invitation.status === 'pending' && isExpired(invitation);
+            const cardInvitation: CoAuthorInvitation = calendarExpired
+              ? { ...invitation, status: 'expired' }
+              : invitation;
+            const canAct =
+              invitation.status === 'pending' && !calendarExpired;
 
-          return (
-            <View key={invitation.id} style={styles.card}>
-              <Text style={styles.cardTitle}>{invitation.research?.title || 'Untitled Research'}</Text>
-              <Text style={styles.cardMeta}>Status: {expired ? 'expired' : invitation.status}</Text>
-              <Text style={styles.cardMeta}>Invited by: {invitation.inviter?.fullName || invitation.inviter?.name || invitation.inviter?.email || 'Unknown'}</Text>
-              <Text style={styles.cardMeta}>Expires: {formatDate(invitation.expires_at)}</Text>
-
-              {invitation.status === 'pending' && !expired ? (
-                <View style={styles.actionsRow}>
-                  <Pressable
-                    style={[styles.actionButton, styles.acceptButton]}
-                    disabled={actingToken === invitation.token}
-                    onPress={() => runAction(invitation.token, 'accept')}
-                  >
-                    <Text style={styles.actionButtonLabel}>Accept</Text>
-                  </Pressable>
-                  <Pressable
-                    style={[styles.actionButton, styles.declineButton]}
-                    disabled={actingToken === invitation.token}
-                    onPress={() => runAction(invitation.token, 'decline')}
-                  >
-                    <Text style={styles.actionButtonLabel}>Decline</Text>
-                  </Pressable>
-                </View>
-              ) : null}
-            </View>
-          );
-        })
+            return (
+              <ListEntranceItem key={invitation.id} index={index}>
+                <InvitationCard
+                  invitation={cardInvitation}
+                  acting={actingToken === invitation.token}
+                  onAccept={
+                    canAct ? () => runAction(invitation.token, 'accept') : undefined
+                  }
+                  onDecline={
+                    canAct ? () => runAction(invitation.token, 'decline') : undefined
+                  }
+                />
+              </ListEntranceItem>
+            );
+          })}
+        </View>
       )}
     </ScrollView>
   );
 };
 
-const StatCard = ({ label, value }: { label: string; value: number }) => (
-  <View style={styles.statCard}>
-    <Text style={styles.statValue}>{value}</Text>
-    <Text style={styles.statLabel}>{label}</Text>
-  </View>
-);
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: theme.colors.surface.base,
   },
   content: {
-    padding: 16,
-    gap: 12,
+    padding: theme.spacing.lg,
+    gap: theme.spacing.lg,
+  },
+  headerBlock: {
+    gap: 0,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#0f172a',
+    ...theme.typography.h1,
+    color: theme.colors.text.primary,
   },
-  statsRow: {
-    flexDirection: 'row',
-    gap: 8,
+  subtitle: {
+    ...theme.typography.bodySmall,
+    color: theme.colors.text.secondary,
+    marginTop: theme.spacing.xs,
   },
-  statCard: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 10,
-    backgroundColor: '#ffffff',
-    padding: 10,
-    alignItems: 'center',
+  skeletonList: {
+    gap: theme.spacing.sm,
   },
-  statValue: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#0f172a',
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#64748b',
-    fontWeight: '600',
-  },
-  error: {
-    color: '#dc2626',
-    fontSize: 13,
-  },
-  loadingText: {
-    color: '#475569',
-    fontSize: 14,
-  },
-  emptyText: {
-    color: '#64748b',
-    fontSize: 14,
-  },
-  card: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    padding: 12,
-    gap: 5,
-  },
-  cardTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#0f172a',
-  },
-  cardMeta: {
-    color: '#475569',
-    fontSize: 12,
-  },
-  actionsRow: {
-    marginTop: 8,
-    flexDirection: 'row',
-    gap: 8,
-  },
-  actionButton: {
-    flex: 1,
-    minHeight: 38,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  acceptButton: {
-    backgroundColor: '#059669',
-  },
-  declineButton: {
-    backgroundColor: '#dc2626',
-  },
-  actionButtonLabel: {
-    color: '#ffffff',
-    fontWeight: '700',
-    fontSize: 13,
+  list: {
+    gap: theme.spacing.sm,
   },
 });
