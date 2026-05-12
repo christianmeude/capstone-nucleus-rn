@@ -60,10 +60,12 @@ export const Chip = ({
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
+      accessibilityState={{ selected: active }}
       style={({ pressed }) => [
         styles.base,
         active ? styles.filterActive : styles.filterInactive,
         pressed ? styles.pressed : null,
+        pressed ? styles.pressedScale : null,
       ]}
     >
       <Text style={[styles.label, active ? styles.filterActiveLabel : styles.filterInactiveLabel]}>
@@ -77,7 +79,8 @@ const styles = StyleSheet.create({
   base: {
     borderRadius: theme.radii.pill,
     borderWidth: 1,
-    minHeight: 36,
+    minHeight: 44,
+    minWidth: 44,
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.xs,
     alignItems: 'center',
@@ -102,6 +105,9 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.9,
+  },
+  pressedScale: {
+    transform: [{ scale: 0.98 }],
   },
 });
 

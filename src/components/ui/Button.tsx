@@ -37,6 +37,7 @@ export const Button = ({
         styles[`${variant}Base`],
         isBlocked ? styles.blocked : null,
         pressed && !isBlocked ? styles[`${variant}Pressed`] : null,
+        pressed && !isBlocked ? styles.pressedScale : null,
       ]}
     >
       {loading ? (
@@ -100,6 +101,9 @@ const styles = StyleSheet.create({
   },
   blocked: {
     opacity: 0.6,
+  },
+  pressedScale: {
+    transform: [{ scale: 0.98 }],
   },
   label: {
     ...theme.typography.button,

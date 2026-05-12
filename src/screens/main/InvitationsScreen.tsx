@@ -11,6 +11,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { invitationsApi } from '../../api/invitations';
 import { CoAuthorInvitation } from '../../types/domain';
 import { InvitationCard } from '../../components/InvitationCard';
+import { ListEntranceItem } from '../../components/ListEntranceItem';
 import { theme } from '../../theme';
 import { EmptyState, InlineNotice, Skeleton } from '../../components/ui';
 
@@ -132,7 +133,7 @@ export const InvitationsScreen = () => {
         />
       ) : (
         <View style={styles.list}>
-          {invitations.map((invitation) => {
+          {invitations.map((invitation, index) => {
             const calendarExpired =
               invitation.status === 'pending' && isExpired(invitation);
             const cardInvitation: CoAuthorInvitation = calendarExpired
@@ -142,17 +143,18 @@ export const InvitationsScreen = () => {
               invitation.status === 'pending' && !calendarExpired;
 
             return (
-              <InvitationCard
-                key={invitation.id}
-                invitation={cardInvitation}
-                acting={actingToken === invitation.token}
-                onAccept={
-                  canAct ? () => runAction(invitation.token, 'accept') : undefined
-                }
-                onDecline={
-                  canAct ? () => runAction(invitation.token, 'decline') : undefined
-                }
-              />
+              <ListEntranceItem key={invitation.id} index={index}>
+                <InvitationCard
+                  invitation={cardInvitation}
+                  acting={actingToken === invitation.token}
+                  onAccept={
+                    canAct ? () => runAction(invitation.token, 'accept') : undefined
+                  }
+                  onDecline={
+                    canAct ? () => runAction(invitation.token, 'decline') : undefined
+                  }
+                />
+              </ListEntranceItem>
             );
           })}
         </View>

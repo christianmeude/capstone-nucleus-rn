@@ -11,6 +11,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { notificationsApi } from '../../api/notifications';
 import { NotificationItem } from '../../types/domain';
 import { NotificationCard } from '../../components/NotificationCard';
+import { ListEntranceItem } from '../../components/ListEntranceItem';
 import { theme } from '../../theme';
 import { Button, EmptyState, InlineNotice, Skeleton } from '../../components/ui';
 
@@ -139,12 +140,10 @@ export const NotificationsScreen = () => {
         />
       ) : (
         <View style={styles.list}>
-          {notifications.map((item) => (
-            <NotificationCard
-              key={item.id}
-              notification={item}
-              onPress={() => openNotification(item)}
-            />
+          {notifications.map((item, index) => (
+            <ListEntranceItem key={item.id} index={index}>
+              <NotificationCard notification={item} onPress={() => openNotification(item)} />
+            </ListEntranceItem>
           ))}
         </View>
       )}

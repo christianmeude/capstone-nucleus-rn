@@ -12,11 +12,13 @@ interface NotificationCardProps {
 
 export const NotificationCard = ({ notification, onPress }: NotificationCardProps) => {
   const unread = !notification.is_read;
+  const title = notification.title || 'Notification';
+  const readState = unread ? 'unread' : 'read';
 
   return (
     <PressableCard
       onPress={onPress}
-      accessibilityLabel={notification.title || 'Notification'}
+      accessibilityLabel={`${title}, ${readState}`}
       style={unread ? { backgroundColor: theme.colors.brand.primarySurface } : undefined}
     >
       <View style={styles.topRow}>

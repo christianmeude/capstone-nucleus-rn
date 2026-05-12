@@ -1,3 +1,5 @@
+import { PixelRatio, type TextStyle } from 'react-native';
+
 /**
  * NUcleus typography tokens.
  *
@@ -11,7 +13,12 @@
  * `@expo-google-fonts/outfit` and `@expo-google-fonts/lora` and are loaded in App.tsx.
  */
 
-import type { TextStyle } from 'react-native';
+const MAX_FONT_SCALE = 1.3;
+
+export const scaledFontSize = (size: number): number => {
+  const scale = Math.min(PixelRatio.getFontScale(), MAX_FONT_SCALE);
+  return Math.round(size * scale);
+};
 
 export const families = {
   ui: {
@@ -55,7 +62,7 @@ const make = (
 ): TypographyStyle => ({
   fontFamily: families[family][weight],
   fontWeight: fontWeightToKey[weight],
-  fontSize,
+  fontSize: scaledFontSize(fontSize),
   lineHeight,
   ...(letterSpacing !== undefined ? { letterSpacing } : {}),
 });

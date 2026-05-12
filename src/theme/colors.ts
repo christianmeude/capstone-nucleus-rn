@@ -100,11 +100,11 @@ export const colors = {
     focus: palette.navy[400],
   },
   state: {
-    success: palette.success[500],
+    success: palette.success[600],
     successSurface: palette.success[100],
     warning: palette.warning[500],
     warningSurface: palette.warning[100],
-    danger: palette.danger[500],
+    danger: palette.danger[600],
     dangerSurface: palette.danger[100],
   },
 } as const;

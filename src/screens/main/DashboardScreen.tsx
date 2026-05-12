@@ -14,6 +14,7 @@ import { ResearchPaper } from '../../types/domain';
 import { paperDate } from '../../utils/format';
 import { theme } from '../../theme';
 import { ResearchCard } from '../../components/ResearchCard';
+import { ListEntranceItem } from '../../components/ListEntranceItem';
 import {
   EmptyState,
   IconButton,
@@ -157,12 +158,13 @@ export const DashboardScreen = () => {
             message="Your recent papers will appear here once available."
           />
         ) : (
-          recentPapers.map((paper) => (
-            <ResearchCard
-              key={paper.id}
-              paper={paper}
-              onPress={() => navigation.navigate('ResearchDetail', { paperId: paper.id })}
-            />
+          recentPapers.map((paper, index) => (
+            <ListEntranceItem key={paper.id} index={index}>
+              <ResearchCard
+                paper={paper}
+                onPress={() => navigation.navigate('ResearchDetail', { paperId: paper.id })}
+              />
+            </ListEntranceItem>
           ))
         )}
       </View>

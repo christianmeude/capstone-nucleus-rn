@@ -2,7 +2,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { PressableCard } from './ui/Card';
 import { ResearchPaper } from '../types/domain';
-import { formatDate, getPrimaryAuthorName, paperDate } from '../utils/format';
+import { formatDate, getPrimaryAuthorName, paperDate, statusToLabel } from '../utils/format';
 import { theme } from '../theme';
 import { PaperStatusChip } from './PaperStatusChip';
 
@@ -89,10 +89,12 @@ export const ResearchCard = ({
   );
 
   if (onPress) {
+    const a11yTitle = paper.title || 'Untitled paper';
+    const statusLabel = statusToLabel(paper.status);
     return (
       <PressableCard
         onPress={onPress}
-        accessibilityLabel={`Open paper: ${paper.title}`}
+        accessibilityLabel={`${a11yTitle}, ${statusLabel}`}
         style={theme.shadows.level2}
       >
         {body}

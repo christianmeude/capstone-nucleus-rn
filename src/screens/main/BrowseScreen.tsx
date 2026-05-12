@@ -14,6 +14,7 @@ import { Category, ResearchPaper } from '../../types/domain';
 import { getPrimaryAuthorName, paperDate } from '../../utils/format';
 import { theme } from '../../theme';
 import { ResearchCard } from '../../components/ResearchCard';
+import { ListEntranceItem } from '../../components/ListEntranceItem';
 import { Chip, EmptyState, InlineNotice, Skeleton } from '../../components/ui';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -137,6 +138,8 @@ export const BrowseScreen = () => {
           placeholder="Search by title, author, or keyword"
           placeholderTextColor={theme.colors.text.disabled}
           style={styles.searchInput}
+          accessibilityLabel="Search papers"
+          accessibilityHint="Filters published papers by title, author, or keyword"
         />
         <View
           pointerEvents={query.trim() ? 'auto' : 'none'}
@@ -187,19 +190,20 @@ export const BrowseScreen = () => {
           }
         />
       ) : (
-        filtered.map((paper) => {
+        filtered.map((paper, index) => {
           const line = categoryLineForDisplay(paper.category);
 
           return (
-            <ResearchCard
-              key={paper.id}
-              paper={paper}
-              {...(line ? { categoryLine: line } : {})}
-              keywords={paper.keywords ?? undefined}
-              showStatusChip={false}
-              showEngagementCounts
-              onPress={() => navigation.navigate('ResearchDetail', { paperId: paper.id })}
-            />
+            <ListEntranceItem key={paper.id} index={index}>
+              <ResearchCard
+                paper={paper}
+                {...(line ? { categoryLine: line } : {})}
+                keywords={paper.keywords ?? undefined}
+                showStatusChip={false}
+                showEngagementCounts
+                onPress={() => navigation.navigate('ResearchDetail', { paperId: paper.id })}
+              />
+            </ListEntranceItem>
           );
         })
       )}

@@ -2,6 +2,9 @@ import { PaperStatus, ResearchPaper, StructuredAuthorEntry } from '../types/doma
 
 const STATUS_LABELS: Record<string, string> = {
   pending: 'Pending',
+  accepted: 'Accepted',
+  declined: 'Declined',
+  expired: 'Expired',
   pending_faculty: 'With Adviser',
   pending_dean: 'With Dean',
   pending_program_chair: 'With Program Chair',

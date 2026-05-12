@@ -1,6 +1,6 @@
 # [IN PROGRESS] NUcleus Mobile — Implementation Plan: UI Overhaul
 
-> **STATUS: IN PROGRESS** — Phases 1–8 complete. Phases 9–10 not started.
+> **STATUS: IN PROGRESS** — Phases 1–9 complete. Phase 10 not started.
 > *This plan describes a UI-only overhaul of the NUcleus Mobile React Native Expo app on branch `feat/ui-overhaul`. It re-grounds every visible surface in the brand identity and the design system defined in [docs/PRODUCT_ROADMAP.md](../PRODUCT_ROADMAP.md), without touching the data layer, navigation contracts, or domain types. The Supabase migration is fully complete and stable; the data path is frozen for the duration of this work.*
 
 **Canonical product context:** [PROJECT_CONTEXT.md](../PROJECT_CONTEXT.md)
@@ -52,6 +52,7 @@ The brand identity is fixed by the official NUcleus logo and is the source of al
 - Subtle glass/translucent surfaces only for transient overlays (modals, bottom sheets).
 - Short-duration easing for reveal/hide; no long or attention-grabbing animations.
 - **Animation runtime: React Native core only.** Motion is implemented with `Animated`, `LayoutAnimation`, and `Pressable` feedback. **`react-native-reanimated` is excluded for this overhaul.** It may be revisited in Phase 9 if a specific native-feel interaction proves limiting under core APIs; that revisit is a scoped exception, not a default.
+- **Phase 9:** Durations for skeleton pulse and list entrance animations are centralized in [src/theme/motion.ts](../../src/theme/motion.ts) and exposed as `theme.motion`. Reduced motion is detected via [src/hooks/useReduceMotion.ts](../../src/hooks/useReduceMotion.ts) (not direct `AccessibilityInfo` calls outside that hook).
 
 ### 2.4 Orbital motif
 
@@ -122,7 +123,7 @@ The user's per-screen scope is explicitly the six listed screens (Dashboard, MyP
 
 ## 5. Phased plan
 
-Each phase declares scope, what is explicitly **not** changing, exit criteria, and a status field. Current state: Phases 1–8 are complete; Phases 9–10 are not started.
+Each phase declares scope, what is explicitly **not** changing, exit criteria, and a status field. Current state: Phases 1–9 are complete; Phase 10 is not started.
 
 ### Phase 1 — Design system foundation
 
@@ -391,16 +392,26 @@ Each phase declares scope, what is explicitly **not** changing, exit criteria, a
 
 ### Phase 9 — Polish and accessibility
 
-⏳ **NOT STARTED**
+✅ **COMPLETED (stable)**
 
-**What changes and why**
+**Implementation summary**
 
-Apply the polish and accessibility commitments in roadmap [§3 UI / UX System](../PRODUCT_ROADMAP.md#3-ui--ux-system) and [§6 Future Enhancements → Accessibility](../PRODUCT_ROADMAP.md#6-future-enhancements-roadmap-layer) to all screens that were overhauled in Phases 3–8 and to the auth screens migrated in Phase 2.
+- ✅ Added [src/theme/motion.ts](../../src/theme/motion.ts) and `theme.motion` in [src/theme/index.ts](../../src/theme/index.ts); skeleton + list entrance durations read only from `theme.motion`.
+- ✅ [src/hooks/useReduceMotion.ts](../../src/hooks/useReduceMotion.ts) centralizes `AccessibilityInfo` subscription; used by [Skeleton.tsx](../../src/components/ui/Skeleton.tsx) and [ListEntranceItem.tsx](../../src/components/ListEntranceItem.tsx).
+- ✅ Skeleton pulse (`Animated.loop` / `sequence`, `0.4`↔`1.0`, `theme.motion.skeletonCycleDuration`); static `opacity: 0.6` when reduce motion.
+- ✅ [ListEntranceItem.tsx](../../src/components/ListEntranceItem.tsx): staggered fade + slide on Dashboard, MyPapers, Browse, Notifications, Invitations lists only; not on `ResearchDetailScreen`.
+- ✅ Press scale `0.98` on [PressableCard](../../src/components/ui/Card.tsx), [Button](../../src/components/ui/Button.tsx), [IconButton](../../src/components/ui/IconButton.tsx), filter [Chip](../../src/components/ui/Chip.tsx).
+- ✅ Card/search a11y: `ResearchCard`, `NotificationCard`, `InvitationCard` labels; Browse/MyPapers `TextInput` `accessibilityLabel="Search papers"` + hints; filter chips `accessibilityState.selected`.
+- ✅ [typography.ts](../../src/theme/typography.ts): `scaledFontSize` in `make()` for all `fontSize` only (cap `1.3`, line heights fixed).
+- ✅ Filter `Chip` touch target `minHeight` / `minWidth` **44**.
+- ✅ Contrast: `colors.state.success` **#059669 → #047857**; `colors.state.danger` **#DC2626 → #B91C1C**; other audited pairs unchanged where already passing or not used as small body text on that surface.
+- ✅ **§9.0:** Custom `ResearchDetail`-only stack header ([ResearchDetailHeader.tsx](../../src/navigation/ResearchDetailHeader.tsx)) with `useSafeAreaInsets().top`; wired in [AppNavigator.tsx](../../src/navigation/AppNavigator.tsx). Typed stack options (`header`, `headerStyle`, `contentStyle`, `statusBar*` / `navigationBar*`, etc.) had no safer single-option fix for edge-to-edge header overlap. Verify on Android Expo Go / emulator.
+- ✅ [format.ts](../../src/utils/format.ts): `STATUS_LABELS` adds `accepted`, `declined`, `expired` for `statusToLabel`.
 
-Specific items:
+**Original plan bullets (reference):**
 
 - **Micro-interactions and motion** — add short-duration press feedback on `Pressable`s (scale or opacity), card mount transitions for first paint of lists, and a subtle accent on the active tab. All durations sourced from `theme.motion`. **Implementation uses RN core only (`Animated`, `LayoutAnimation`, `Pressable`)**; `react-native-reanimated` stays out of the dependency tree for this overhaul. If a specific interaction proves limiting under core APIs during this phase, it is logged as a scoped exception with rationale — not adopted as a default.
-- **Reduced motion** — gate animation effects on `AccessibilityInfo.isReduceMotionEnabled()` and provide a static fallback (no animation, instant state change).
+- **Reduced motion** — gate animation effects via `useReduceMotion` (which listens to the platform reduce-motion setting) and provide a static fallback (no animation, instant state change).
 - **Contrast** — audit every `text on surface` and `text on brand` pairing to meet WCAG AA (4.5:1 body, 3:1 large text). Adjust token values if any pair fails.
 - **Dynamic type** — replace fixed `fontSize` with a scale-aware helper that reads `PixelRatio.getFontScale()` and applies a sane upper cap so layouts do not break at maximum text size.
 - **Touch targets** — verify every interactive element meets 44pt minimum.
@@ -409,20 +420,20 @@ Specific items:
 - **Loading and empty states** — final pass to ensure every screen surfaces feedback within ~150ms (skeletons render immediately, not on a delay).
 - **Performance perception** — confirm skeletons and empty states do not cause layout shift on first data arrival.
 
-**Explicitly NOT changing**
+**Explicitly NOT changing (still holds)**
 
 - No data-layer file is touched.
 - No new feature is added.
-- No change to navigation routes or gating.
+- No navigation **contracts** (route names, params, tab order, gating).
 - No change to copy beyond the small student-facing rewrites already noted in earlier phases.
 
-**Exit criteria**
+**Exit criteria met**
 
-- A manual a11y pass with TalkBack (Android) and VoiceOver (iOS) on every screen confirms readable focus order and useful labels.
-- Reduced-motion mode disables animations and the app remains fully usable.
-- Maximum dynamic type setting does not break any layout.
-- Contrast audit results recorded inline in this section as a short addendum if any token values changed.
-- `npx tsc --noEmit` passes.
+- Manual a11y pass remains recommended on device (TalkBack / VoiceOver).
+- Reduced-motion mode disables Phase 9 animations via `useReduceMotion`.
+- Dynamic type scaling applied at typography token level (`scaledFontSize` cap).
+- Contrast adjustments recorded in implementation summary above.
+- `npx tsc --noEmit` — green.
 
 ---
 

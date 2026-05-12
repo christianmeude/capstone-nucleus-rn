@@ -14,6 +14,7 @@ import { PaperStatus, ResearchPaper } from '../../types/domain';
 import { paperDate } from '../../utils/format';
 import { theme } from '../../theme';
 import { ResearchCard } from '../../components/ResearchCard';
+import { ListEntranceItem } from '../../components/ListEntranceItem';
 import {
   ACTION_STATUSES,
   ACTIVE_STATUSES,
@@ -106,6 +107,8 @@ export const MyPapersScreen = () => {
           placeholder="Search title, abstract, or keywords"
           placeholderTextColor={theme.colors.text.disabled}
           style={styles.searchInput}
+          accessibilityLabel="Search papers"
+          accessibilityHint="Filters your papers by title, abstract, or keywords"
         />
         {query ? (
           <Chip label="Clear" active={false} onPress={() => setQuery('')} variant="filter" />
@@ -157,12 +160,13 @@ export const MyPapersScreen = () => {
           message="No papers match your current filter."
         />
       ) : (
-        filtered.map((paper) => (
-          <ResearchCard
-            key={paper.id}
-            paper={paper}
-            onPress={() => navigation.navigate('ResearchDetail', { paperId: paper.id })}
-          />
+        filtered.map((paper, index) => (
+          <ListEntranceItem key={paper.id} index={index}>
+            <ResearchCard
+              paper={paper}
+              onPress={() => navigation.navigate('ResearchDetail', { paperId: paper.id })}
+            />
+          </ListEntranceItem>
         ))
       )}
     </ScrollView>

@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { CoAuthorInvitation } from '../types/domain';
-import { formatDate } from '../utils/format';
+import { formatDate, statusToLabel } from '../utils/format';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { theme } from '../theme';
@@ -55,6 +55,8 @@ export const InvitationCard = ({
   const statusKey = String(invitation.status);
   const dotColor = dotColorForStatus(statusKey);
   const statusLabel = statusLabelForStatus(statusKey);
+  const researchTitle = invitation.research?.title || 'Untitled Research';
+  const a11yStatus = statusToLabel(invitation.status);
 
   const invitedRow =
     invitation.created_at != null && invitation.created_at !== '' ? (
@@ -74,7 +76,12 @@ export const InvitationCard = ({
   return (
     <Card>
       <View style={[styles.cardInner, { opacity: isPending ? 1 : 0.5 }]}>
-        <View style={styles.content}>
+        <View
+          accessible
+          accessibilityRole="text"
+          accessibilityLabel={`${researchTitle}, invitation ${a11yStatus}`}
+          style={styles.content}
+        >
           <Text style={styles.title}>{invitation.research?.title || 'Untitled Research'}</Text>
 
           <View style={styles.statusRow}>

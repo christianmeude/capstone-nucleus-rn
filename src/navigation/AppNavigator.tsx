@@ -15,6 +15,7 @@ import { InvitationsScreen } from '../screens/main/InvitationsScreen';
 import { ResearchDetailScreen } from '../screens/main/ResearchDetailScreen';
 import { theme } from '../theme';
 import { Logo } from '../components/ui';
+import { ResearchDetailHeader } from './ResearchDetailHeader';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tabs = createBottomTabNavigator<StudentTabsParamList>();
@@ -142,7 +143,10 @@ export const AppNavigator = () => {
             <Stack.Screen
               name="ResearchDetail"
               component={ResearchDetailScreen}
-              options={{ title: 'Research Detail' }}
+              options={{
+                title: 'Research Detail',
+                header: (props) => <ResearchDetailHeader {...props} />,
+              }}
             />
           </>
         )}

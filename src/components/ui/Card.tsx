@@ -59,8 +59,8 @@ const styles = StyleSheet.create({
     borderRadius: theme.radii.lg,
   },
   pressed: {
-    opacity: 0.9,
-    transform: [{ scale: 0.995 }],
+    opacity: 0.96,
+    transform: [{ scale: 0.98 }],
   },
   disabled: {
     opacity: 0.6,

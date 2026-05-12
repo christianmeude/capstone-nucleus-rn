@@ -22,7 +22,12 @@ export const IconButton = ({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       onPress={onPress}
-      style={({ pressed }) => [styles.button, style, pressed ? styles.pressed : null]}
+      style={({ pressed }) => [
+        styles.button,
+        style,
+        pressed ? styles.pressed : null,
+        pressed ? styles.pressedScale : null,
+      ]}
     >
       <Ionicons name={icon} size={20} color={color} />
     </Pressable>
@@ -42,5 +47,8 @@ const styles = StyleSheet.create({
   },
   pressed: {
     backgroundColor: theme.colors.surface.sunken,
+  },
+  pressedScale: {
+    transform: [{ scale: 0.98 }],
   },
 });
