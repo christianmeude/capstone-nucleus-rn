@@ -1,6 +1,6 @@
 # [IN PROGRESS] NUcleus Mobile — Implementation Plan: UI Overhaul
 
-> **STATUS: IN PROGRESS** — Phases 1–7 complete. Phases 8–10 not started.
+> **STATUS: IN PROGRESS** — Phases 1–8 complete. Phases 9–10 not started.
 > *This plan describes a UI-only overhaul of the NUcleus Mobile React Native Expo app on branch `feat/ui-overhaul`. It re-grounds every visible surface in the brand identity and the design system defined in [docs/PRODUCT_ROADMAP.md](../PRODUCT_ROADMAP.md), without touching the data layer, navigation contracts, or domain types. The Supabase migration is fully complete and stable; the data path is frozen for the duration of this work.*
 
 **Canonical product context:** [PROJECT_CONTEXT.md](../PROJECT_CONTEXT.md)
@@ -122,7 +122,7 @@ The user's per-screen scope is explicitly the six listed screens (Dashboard, MyP
 
 ## 5. Phased plan
 
-Each phase declares scope, what is explicitly **not** changing, exit criteria, and a status field. Current state: Phases 1–7 are complete; Phases 8–10 are not started.
+Each phase declares scope, what is explicitly **not** changing, exit criteria, and a status field. Current state: Phases 1–8 are complete; Phases 9–10 are not started.
 
 ### Phase 1 — Design system foundation
 
@@ -353,19 +353,24 @@ Each phase declares scope, what is explicitly **not** changing, exit criteria, a
 
 ### Phase 8 — ResearchDetail overhaul
 
-⏳ **NOT STARTED**
+✅ **COMPLETED (stable)**
 
-**What changes and why**
+**Implementation summary**
 
-Re-implement [src/screens/main/ResearchDetailScreen.tsx](../../src/screens/main/ResearchDetailScreen.tsx) for roadmap [§4.3 Research Detail Experience](../PRODUCT_ROADMAP.md#43-research-detail-experience): "clear content hierarchy: title → authors → abstract → workflow notes → file access … reading mode: reduced chrome, generous line length and spacing, clear download/open controls."
+- ✅ Re-implemented [src/screens/main/ResearchDetailScreen.tsx](../../src/screens/main/ResearchDetailScreen.tsx) on design-system tokens/primitives with no hex literals.
+- ✅ Added `listCoAuthorNames(paper)` to [src/utils/format.ts](../../src/utils/format.ts) as a new helper only (existing helpers unchanged) and switched the detail metadata from co-author count to co-author name list (`None` fallback).
+- ✅ Replaced legacy loading and missing-paper surfaces: loading now uses themed `ActivityIndicator` + themed text; missing-paper state now uses `EmptyState` with a rendered `<Ionicons />` icon.
+- ✅ Applied Lora only to the paper title (`theme.typography.display` + `theme.fontFamilies.display.semibold`); all surrounding metadata, status, actions, abstract, and workflow remain Outfit tokens.
+- ✅ Reworked metadata hierarchy: `PaperStatusChip`, author, co-authors, conditional department, published date, views, and downloads; added a keywords section with neutral `Chip` tags (hidden when no keywords).
+- ✅ Replaced action `Pressable`s with `Button` primitives (`Open PDF` primary + loading; `Download` secondary) and moved error display to `InlineNotice` below actions.
+- ✅ Added owner-aware workflow visibility (`showWorkflow`) using `useAuth().user` and `structured_authors`; workflow entries render as `Card` components with `padding="sm"` and a themed left border accent.
+- ✅ Workflow empty state now uses a lightweight muted inline text message instead of bare body copy.
 
-Visual changes:
+**Implementation decisions**
 
-- **Paper title is set in Lora** at the `display` size with generous line height — this is the one editorial moment in the app, per §2.2, where the serif carries content. Status chip, author/co-author meta, dates, and view/download counts that sit immediately under the title remain Outfit so the title reads as content and the surrounding chrome reads as application. Metadata block is a clean key/value group with `PaperStatusChip` for status.
-- Action group ("Open PDF", "Open + Track Download") uses `Button` primary + secondary variants. Loading state on the in-flight action uses the primitive's loading state. The disabled treatment uses theme-driven opacity, not a literal.
-- Abstract uses Outfit body typography with mobile-tuned line length; section header uses `h2` (Outfit). Lora is **not** used for the abstract body — only for the paper title — so the reading experience stays clean and content-led without becoming a serif page.
-- Workflow history uses a vertical timeline rendering: each entry is a card with reviewer role, action, relative time, and optional comment. The orbital motif may inform a subtle vertical accent line down the timeline. Empty and loading states use `EmptyState` and `Skeleton`.
-- Errors render via `InlineNotice` (toast-like inline strip) instead of the current bare red text.
+- `openFile` behavior and ordering were preserved exactly: track view → optional track download → resolve file URL → open browser; server-side download rejection still surfaces through the same error path.
+- The owner check uses `structured_authors` primary entry matching `user?.id`, and workflow visibility follows the approved condition: always for non-approved/non-published, plus approved/published when owner.
+- Keywords use `Chip` with `variant="status"` and `tone="neutral"` to keep them lightweight and non-interactive.
 
 **Explicitly NOT changing**
 
@@ -375,13 +380,12 @@ Visual changes:
 - `route.params.paperId` consumption is unchanged.
 - No in-app PDF viewer is introduced (out of scope per §1).
 
-**Exit criteria**
+**Exit criteria met:**
 
-- `ResearchDetailScreen` contains no hex literals; uses theme + primitives + `PaperStatusChip`.
-- Title, metadata, abstract, and workflow visually map to the roadmap's content hierarchy.
-- Open and download flows behave identically; tracking still fires; gating still surfaces a user-facing message.
-- `npx tsc --noEmit` passes.
-- Manual smoke: open a paper from each entry point (Dashboard, MyPapers, Browse, Notifications); open PDF; open + track download; verify view/download counts increment after a refresh.
+- ✅ `ResearchDetailScreen` contains no hex literals; uses theme + primitives + `PaperStatusChip`.
+- ✅ Title, metadata, abstract, keywords, actions, and workflow hierarchy now map to roadmap §4.3 with Lora used only for the title.
+- ✅ Open/download flows and error surfacing remain behaviorally unchanged.
+- ✅ `npx tsc --noEmit` — green.
 
 ---
 

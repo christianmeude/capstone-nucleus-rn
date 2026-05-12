@@ -1,29 +1,33 @@
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { RouteProp, useRoute } from '@react-navigation/native';
 import * as WebBrowser from 'expo-web-browser';
 import { researchApi } from '../../api/research';
 import { RootStackParamList } from '../../navigation/types';
 import { ResearchPaper, WorkflowEntry } from '../../types/domain';
+import { useAuth } from '../../context/AuthContext';
+import { theme } from '../../theme';
+import { PaperStatusChip } from '../../components/PaperStatusChip';
+import { Button, Card, Chip, EmptyState, InlineNotice } from '../../components/ui';
 import {
-  countCoAuthors,
   formatDate,
   formatRelativeTime,
   getPrimaryAuthorName,
-  statusToLabel,
+  listCoAuthorNames,
 } from '../../utils/format';
 
 type DetailRouteProp = RouteProp<RootStackParamList, 'ResearchDetail'>;
 
 export const ResearchDetailScreen = () => {
   const route = useRoute<DetailRouteProp>();
+  const { user } = useAuth();
   const { paperId } = route.params;
 
   const [paper, setPaper] = useState<ResearchPaper | null>(null);
@@ -94,7 +98,7 @@ export const ResearchDetailScreen = () => {
   if (loading) {
     return (
       <View style={styles.loaderContainer}>
-        <ActivityIndicator size="large" color="#1c4d8d" />
+        <ActivityIndicator size="large" color={theme.colors.brand.primary} />
         <Text style={styles.loaderText}>Loading paper...</Text>
       </View>
     );
@@ -103,61 +107,94 @@ export const ResearchDetailScreen = () => {
   if (!paper) {
     return (
       <View style={styles.loaderContainer}>
-        <Text style={styles.error}>{error || 'Paper not found.'}</Text>
+        <EmptyState
+          icon={<Ionicons name="document-outline" size={24} color={theme.colors.text.muted} />}
+          title="Paper not found"
+          message={error || 'Unable to load paper details.'}
+        />
       </View>
     );
   }
 
+  const isOwner =
+    paper.structured_authors?.some((e) => e.is_primary && e.user_id === user?.id) ?? false;
+  const showWorkflow =
+    (paper.status !== 'approved' && paper.status !== 'published') || isOwner;
+  const keywords = Array.isArray(paper.keywords) ? paper.keywords.filter(Boolean) : [];
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.title}>{paper.title}</Text>
-      <Text style={styles.meta}>Status: {statusToLabel(paper.status)}</Text>
+      <PaperStatusChip status={paper.status} />
       <Text style={styles.meta}>Author: {getPrimaryAuthorName(paper)}</Text>
-      <Text style={styles.meta}>Co-authors: {countCoAuthors(paper)}</Text>
+      <Text style={styles.meta}>Co-authors: {listCoAuthorNames(paper)}</Text>
+      {paper.department ? <Text style={styles.meta}>Department: {paper.department}</Text> : null}
       <Text style={styles.meta}>Published: {formatDate(paper.published_date || paper.created_at)}</Text>
-      <Text style={styles.meta}>Views: {paper.view_count || 0} • Downloads: {paper.download_count || 0}</Text>
+      <Text style={styles.meta}>Views: {paper.view_count || 0}</Text>
+      <Text style={styles.meta}>Downloads: {paper.download_count || 0}</Text>
+
+      {keywords.length > 0 ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Keywords</Text>
+          <View style={styles.keywordsWrap}>
+            {keywords.map((keyword) => (
+              <Chip key={keyword} variant="status" tone="neutral" label={keyword} />
+            ))}
+          </View>
+        </View>
+      ) : null}
 
       <View style={styles.actionsRow}>
-        <Pressable
-          style={[styles.actionButton, styles.openButton, openingFile ? styles.disabledButton : null]}
+        <Button
+          label="Open PDF"
+          variant="primary"
           onPress={() => openFile(false)}
+          loading={openingFile}
           disabled={openingFile}
-        >
-          <Text style={styles.actionButtonLabel}>Open PDF</Text>
-        </Pressable>
-        <Pressable
-          style={[styles.actionButton, styles.downloadButton, openingFile ? styles.disabledButton : null]}
+        />
+        <Button
+          label="Download"
+          variant="secondary"
           onPress={() => openFile(true)}
+          loading={false}
           disabled={openingFile}
-        >
-          <Text style={styles.actionButtonLabel}>Open + Track Download</Text>
-        </Pressable>
+        />
       </View>
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? <InlineNotice tone="danger" message={error} /> : null}
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Abstract</Text>
         <Text style={styles.body}>{paper.abstract || 'No abstract available.'}</Text>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Workflow History</Text>
-        {workflow.length === 0 ? (
-          <Text style={styles.body}>No workflow history available.</Text>
-        ) : (
-          workflow.map((entry) => (
-            <View key={entry.id} style={styles.workflowCard}>
-              <Text style={styles.workflowTitle}>{entry.action_type || entry.status || 'Updated'}</Text>
-              <Text style={styles.workflowMeta}>Reviewer role: {entry.reviewer_role || 'N/A'}</Text>
-              <Text style={styles.workflowMeta}>
-                {formatRelativeTime(entry.reviewed_at || entry.created_at)}
-              </Text>
-              {entry.comments ? <Text style={styles.workflowComment}>{entry.comments}</Text> : null}
+      {showWorkflow ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Workflow History</Text>
+          {workflow.length === 0 ? (
+            <Text style={styles.workflowEmpty}>No workflow history available.</Text>
+          ) : (
+            <View style={styles.workflowList}>
+              {workflow.map((entry) => (
+                <Card
+                  key={entry.id}
+                  padding="sm"
+                  style={styles.workflowCard}
+                >
+                  <Text style={styles.workflowTitle}>
+                    {entry.action_type || entry.status || 'Updated'}
+                  </Text>
+                  <Text style={styles.workflowMeta}>Reviewer role: {entry.reviewer_role || 'N/A'}</Text>
+                  <Text style={styles.workflowMeta}>
+                    {formatRelativeTime(entry.reviewed_at || entry.created_at)}
+                  </Text>
+                  {entry.comments ? <Text style={styles.workflowComment}>{entry.comments}</Text> : null}
+                </Card>
+              ))}
             </View>
-          ))
-        )}
-      </View>
+          )}
+        </View>
+      ) : null}
     </ScrollView>
   );
 };
@@ -165,93 +202,77 @@ export const ResearchDetailScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: theme.colors.surface.base,
   },
   content: {
-    padding: 16,
-    gap: 10,
+    padding: theme.spacing.lg,
+    gap: theme.spacing.sm,
   },
   loaderContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#f8fafc',
-    gap: 8,
+    padding: theme.spacing.lg,
+    backgroundColor: theme.colors.surface.base,
+    gap: theme.spacing.sm,
   },
   loaderText: {
-    color: '#475569',
+    ...theme.typography.bodySmall,
+    color: theme.colors.text.secondary,
   },
   title: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#0f172a',
+    ...theme.typography.display,
+    fontFamily: theme.fontFamilies.display.semibold,
+    color: theme.colors.text.primary,
   },
   meta: {
-    fontSize: 13,
-    color: '#475569',
+    ...theme.typography.metadata,
+    color: theme.colors.text.secondary,
   },
   actionsRow: {
-    marginTop: 8,
-    gap: 8,
-  },
-  actionButton: {
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 11,
-    alignItems: 'center',
-  },
-  openButton: {
-    backgroundColor: '#1c4d8d',
-  },
-  downloadButton: {
-    backgroundColor: '#0f766e',
-  },
-  disabledButton: {
-    opacity: 0.6,
-  },
-  actionButtonLabel: {
-    color: '#ffffff',
-    fontWeight: '700',
-    fontSize: 13,
-  },
-  error: {
-    color: '#dc2626',
-    fontSize: 13,
+    marginTop: theme.spacing.sm,
+    gap: theme.spacing.sm,
   },
   section: {
-    marginTop: 10,
-    gap: 6,
+    marginTop: theme.spacing.md,
+    gap: theme.spacing.sm,
   },
   sectionTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#0f172a',
+    ...theme.typography.h2,
+    color: theme.colors.text.primary,
   },
   body: {
-    color: '#334155',
-    fontSize: 14,
-    lineHeight: 21,
+    ...theme.typography.body,
+    color: theme.colors.text.secondary,
+    lineHeight: 24,
+  },
+  keywordsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: theme.spacing.xs,
+  },
+  workflowList: {
+    gap: theme.spacing.sm,
   },
   workflowCard: {
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 10,
-    padding: 10,
-    gap: 4,
+    borderLeftWidth: 3,
+    borderLeftColor: theme.colors.brand.primary,
+    gap: theme.spacing.xs,
   },
   workflowTitle: {
-    color: '#0f172a',
-    fontSize: 14,
-    fontWeight: '700',
+    ...theme.typography.bodyStrong,
+    color: theme.colors.text.primary,
   },
   workflowMeta: {
-    color: '#64748b',
-    fontSize: 12,
+    ...theme.typography.metadata,
+    color: theme.colors.text.muted,
   },
   workflowComment: {
-    color: '#334155',
-    fontSize: 13,
+    ...theme.typography.body,
+    color: theme.colors.text.secondary,
+  },
+  workflowEmpty: {
+    ...theme.typography.bodySmall,
+    color: theme.colors.text.muted,
   },
 });

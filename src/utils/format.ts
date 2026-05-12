@@ -108,3 +108,15 @@ export const normalizeAuthorEntries = (paper: ResearchPaper): StructuredAuthorEn
 
   return [];
 };
+
+export const listCoAuthorNames = (paper: ResearchPaper): string => {
+  const structured = Array.isArray(paper.structured_authors)
+    ? paper.structured_authors
+    : [];
+  const names = structured
+    .filter((e) => !e?.is_primary)
+    .map((e) => e?.author?.fullName || e?.author?.name)
+    .filter(Boolean) as string[];
+  if (names.length === 0) return 'None';
+  return names.join(', ');
+};
