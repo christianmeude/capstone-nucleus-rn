@@ -5,6 +5,7 @@ import { ResearchPaper } from '../types/domain';
 import { formatDate, getPrimaryAuthorName, paperDate, statusToLabel } from '../utils/format';
 import { theme } from '../theme';
 import { PaperStatusChip } from './PaperStatusChip';
+import { useListEntranceActive } from './ListEntranceItem';
 
 interface ResearchCardProps {
   paper: ResearchPaper;
@@ -23,10 +24,12 @@ export const ResearchCard = ({
   categoryLine,
   keywords,
 }: ResearchCardProps) => {
+  const isEntering = useListEntranceActive();
   const authorName = getPrimaryAuthorName(paper);
   const authorInitial = authorName.trim().charAt(0).toUpperCase() || '?';
   const displayKeywords = (Array.isArray(keywords) ? keywords : []).filter(Boolean).slice(0, 4);
   const keywordTint = `${theme.colors.brand.accent}33`;
+  const cardShadow = isEntering ? theme.shadows.level0 : theme.shadows.level2;
 
   const body = (
     <View style={styles.content}>
@@ -95,13 +98,13 @@ export const ResearchCard = ({
       <PressableCard
         onPress={onPress}
         accessibilityLabel={`${a11yTitle}, ${statusLabel}`}
-        style={theme.shadows.level2}
+        style={cardShadow}
       >
         {body}
       </PressableCard>
     );
   }
-  return <View style={[styles.readOnly, theme.shadows.level2]}>{body}</View>;
+  return <View style={[styles.readOnly, cardShadow]}>{body}</View>;
 };
 
 const styles = StyleSheet.create({

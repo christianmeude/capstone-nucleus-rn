@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,7 +16,6 @@ import { RootStackParamList } from '../../navigation/types';
 import { ResearchPaper, WorkflowEntry } from '../../types/domain';
 import { useAuth } from '../../context/AuthContext';
 import { theme } from '../../theme';
-import { PaperStatusChip } from '../../components/PaperStatusChip';
 import { Button, Card, Chip, EmptyState, InlineNotice } from '../../components/ui';
 import {
   formatDate,
@@ -36,11 +36,13 @@ export const ResearchDetailScreen = () => {
   const [loading, setLoading] = useState(true);
   const [openingFile, setOpeningFile] = useState(false);
   const [error, setError] = useState('');
+  const [coAuthorsExpanded, setCoAuthorsExpanded] = useState(false);
 
   useEffect(() => {
     const run = async () => {
       setLoading(true);
       setError('');
+      setCoAuthorsExpanded(false);
 
       try {
         const detail = await researchApi.getResearchById(paperId);
@@ -56,7 +58,7 @@ export const ResearchDetailScreen = () => {
     run();
   }, [paperId]);
 
-  const openFile = async (trackDownload: boolean) => {
+  const openFile = async () => {
     if (!paper) return;
 
     setOpeningFile(true);
@@ -67,17 +69,6 @@ export const ResearchDetailScreen = () => {
         await researchApi.trackView(paperId);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unable to track view.');
-      }
-
-      // Track download if requested
-      if (trackDownload) {
-        try {
-          await researchApi.trackDownload(paperId);
-        } catch (error) {
-          // If download tracking fails (e.g., downloads disabled), show error and stop
-          setError(error instanceof Error ? error.message : 'Unable to track download.');
-          return;
-        }
       }
 
       const resolved = await researchApi.getResearchFile(paperId);
@@ -122,18 +113,80 @@ export const ResearchDetailScreen = () => {
   const showWorkflow =
     (paper.status !== 'approved' && paper.status !== 'published') || isOwner;
   const keywords = Array.isArray(paper.keywords) ? paper.keywords.filter(Boolean) : [];
+  const authorName = getPrimaryAuthorName(paper);
+  const authorInitial = authorName.trim().charAt(0).toUpperCase() || '?';
+  const displayDate = paper.published_date || paper.created_at;
+  const coAuthorNames = listCoAuthorNames(paper);
+  const hasCoAuthors = coAuthorNames !== 'None';
+  const coAuthorList = hasCoAuthors
+    ? coAuthorNames.split(',').map((name) => name.trim()).filter(Boolean)
+    : [];
+  const coAuthorCount = coAuthorList.length;
+  const coAuthorLabel = `+${coAuthorCount} co-author${coAuthorCount === 1 ? '' : 's'}`;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.surface.base }} edges={['bottom']}>
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         <Text style={styles.title}>{paper.title}</Text>
-        <PaperStatusChip status={paper.status} />
-        <Text style={styles.meta}>Author: {getPrimaryAuthorName(paper)}</Text>
-        <Text style={styles.meta}>Co-authors: {listCoAuthorNames(paper)}</Text>
-        {paper.department ? <Text style={styles.meta}>Department: {paper.department}</Text> : null}
-        <Text style={styles.meta}>Published: {formatDate(paper.published_date || paper.created_at)}</Text>
-        <Text style={styles.meta}>Views: {paper.view_count || 0}</Text>
-        <Text style={styles.meta}>Downloads: {paper.download_count || 0}</Text>
+
+        {paper.department ? (
+          <View style={styles.departmentPill}>
+            <Text style={styles.departmentPillText}>{paper.department}</Text>
+          </View>
+        ) : null}
+
+        <View style={styles.metaTopRow}>
+          <View style={styles.authorRow}>
+            <View style={styles.authorAvatar}>
+              <Text style={styles.authorAvatarText}>{authorInitial}</Text>
+            </View>
+            <Text style={styles.authorName}>{authorName}</Text>
+          </View>
+
+          <View style={styles.engagementRow}>
+            <View accessible accessibilityLabel={`${paper.view_count || 0} views`} style={styles.engagementItem}>
+              <Ionicons name="eye-outline" size={14} color={theme.colors.text.muted} />
+              <Text style={styles.meta}>{paper.view_count || 0}</Text>
+            </View>
+            <View
+              accessible
+              accessibilityLabel={`${paper.download_count || 0} downloads`}
+              style={styles.engagementItem}
+            >
+              <Ionicons name="download-outline" size={14} color={theme.colors.text.muted} />
+              <Text style={styles.meta}>{paper.download_count || 0}</Text>
+            </View>
+          </View>
+        </View>
+
+        <View
+          style={styles.dateRow}
+          accessible
+          accessibilityLabel={displayDate ? formatDate(displayDate) : 'Date unavailable'}
+        >
+          <Ionicons name="calendar-outline" size={14} color={theme.colors.text.muted} />
+          <Text style={styles.meta}>{formatRelativeTime(displayDate)}</Text>
+        </View>
+
+        {hasCoAuthors ? (
+          <View style={styles.coAuthorsBlock}>
+            <Pressable
+              onPress={() => setCoAuthorsExpanded((prev) => !prev)}
+              accessibilityRole="button"
+              accessibilityState={{ expanded: coAuthorsExpanded }}
+              accessibilityLabel={coAuthorsExpanded ? 'Hide co-author names' : 'Show co-author names'}
+              style={({ pressed }) => [
+                styles.coAuthorsChip,
+                pressed ? styles.coAuthorsChipPressed : null,
+              ]}
+            >
+              <Text style={styles.coAuthorsChipText}>{coAuthorLabel}</Text>
+            </Pressable>
+            {coAuthorsExpanded ? (
+              <Text style={styles.coAuthorsNames}>{coAuthorList.join(', ')}</Text>
+            ) : null}
+          </View>
+        ) : null}
 
         {keywords.length > 0 ? (
           <View style={styles.section}>
@@ -147,18 +200,12 @@ export const ResearchDetailScreen = () => {
         ) : null}
 
         <View style={styles.actionsRow}>
+          {/* Download is intentionally hidden pending backend allow_download support (Issue #8). */}
           <Button
             label="Open PDF"
             variant="primary"
-            onPress={() => openFile(false)}
+            onPress={openFile}
             loading={openingFile}
-            disabled={openingFile}
-          />
-          <Button
-            label="Download"
-            variant="secondary"
-            onPress={() => openFile(true)}
-            loading={false}
             disabled={openingFile}
           />
         </View>
@@ -228,8 +275,91 @@ const styles = StyleSheet.create({
     fontFamily: theme.fontFamilies.display.semibold,
     color: theme.colors.text.primary,
   },
+  departmentPill: {
+    alignSelf: 'flex-start',
+    borderRadius: theme.radii.pill,
+    backgroundColor: theme.colors.surface.sunken,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: theme.colors.border.subtle,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: 4,
+  },
+  departmentPillText: {
+    ...theme.typography.caption,
+    color: theme.colors.text.secondary,
+  },
+  metaTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: theme.spacing.md,
+  },
+  authorRow: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+  },
+  authorAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: theme.radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.brand.primary,
+  },
+  authorAvatarText: {
+    ...theme.typography.caption,
+    color: theme.colors.text.onBrand,
+  },
+  authorName: {
+    ...theme.typography.bodyStrong,
+    color: theme.colors.text.primary,
+    flexShrink: 1,
+  },
+  engagementRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.md,
+  },
+  engagementItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.xs,
+  },
   meta: {
     ...theme.typography.metadata,
+    color: theme.colors.text.secondary,
+  },
+  coAuthorsBlock: {
+    gap: theme.spacing.xs,
+  },
+  coAuthorsChip: {
+    alignSelf: 'flex-start',
+    minHeight: 32,
+    borderRadius: theme.radii.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: theme.colors.border.strong,
+    backgroundColor: theme.colors.surface.raised,
+    paddingHorizontal: theme.spacing.sm,
+    justifyContent: 'center',
+  },
+  coAuthorsChipPressed: {
+    transform: [{ scale: 0.98 }],
+    opacity: 0.96,
+  },
+  coAuthorsChipText: {
+    ...theme.typography.caption,
+    color: theme.colors.text.secondary,
+  },
+  coAuthorsNames: {
+    ...theme.typography.bodySmall,
     color: theme.colors.text.secondary,
   },
   actionsRow: {

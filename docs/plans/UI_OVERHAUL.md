@@ -407,6 +407,10 @@ Each phase declares scope, what is explicitly **not** changing, exit criteria, a
 - ✅ Contrast: `colors.state.success` **#059669 → #047857**; `colors.state.danger` **#DC2626 → #B91C1C**; other audited pairs unchanged where already passing or not used as small body text on that surface.
 - ✅ **§9.0:** Custom `ResearchDetail`-only stack header ([ResearchDetailHeader.tsx](../../src/navigation/ResearchDetailHeader.tsx)) with `useSafeAreaInsets().top`; wired in [AppNavigator.tsx](../../src/navigation/AppNavigator.tsx). Typed stack options (`header`, `headerStyle`, `contentStyle`, `statusBar*` / `navigationBar*`, etc.) had no safer single-option fix for edge-to-edge header overlap. Verify on Android Expo Go / emulator.
 - ✅ [format.ts](../../src/utils/format.ts): `STATUS_LABELS` adds `accepted`, `declined`, `expired` for `statusToLabel`.
+- ✅ **Refinement:** Retuned list entrance cadence in [src/theme/motion.ts](../../src/theme/motion.ts) (`listItemDuration` **320**, `listStaggerDelay` **60**) and switched list-item timing to `Easing.out(Easing.cubic)` in [ListEntranceItem.tsx](../../src/components/ListEntranceItem.tsx).
+- ✅ **Refinement:** Removed Android entrance shadow ghost by suppressing `ResearchCard` elevation while a row is entering (`useListEntranceActive` + `theme.shadows.level0` during animation, restoring `theme.shadows.level2` after completion).
+- ✅ **Refinement:** [ResearchDetailScreen.tsx](../../src/screens/main/ResearchDetailScreen.tsx) now uses a compact metadata strip (author avatar/name, engagement stats, relative-date row with absolute-date label, optional department pill, expandable co-author chip when names exist).
+- ✅ **Refinement (Issue #8):** Removed `Download` UI path from `ResearchDetailScreen` and the local `trackDownload` call-site; `Open PDF` remains, with view tracking preserved and a note that download is intentionally hidden pending `allow_download`.
 
 **Original plan bullets (reference):**
 
