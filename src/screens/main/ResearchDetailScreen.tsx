@@ -6,6 +6,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { RouteProp, useRoute } from '@react-navigation/native';
 import * as WebBrowser from 'expo-web-browser';
@@ -123,79 +124,81 @@ export const ResearchDetailScreen = () => {
   const keywords = Array.isArray(paper.keywords) ? paper.keywords.filter(Boolean) : [];
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>{paper.title}</Text>
-      <PaperStatusChip status={paper.status} />
-      <Text style={styles.meta}>Author: {getPrimaryAuthorName(paper)}</Text>
-      <Text style={styles.meta}>Co-authors: {listCoAuthorNames(paper)}</Text>
-      {paper.department ? <Text style={styles.meta}>Department: {paper.department}</Text> : null}
-      <Text style={styles.meta}>Published: {formatDate(paper.published_date || paper.created_at)}</Text>
-      <Text style={styles.meta}>Views: {paper.view_count || 0}</Text>
-      <Text style={styles.meta}>Downloads: {paper.download_count || 0}</Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.surface.base }} edges={['bottom']}>
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <Text style={styles.title}>{paper.title}</Text>
+        <PaperStatusChip status={paper.status} />
+        <Text style={styles.meta}>Author: {getPrimaryAuthorName(paper)}</Text>
+        <Text style={styles.meta}>Co-authors: {listCoAuthorNames(paper)}</Text>
+        {paper.department ? <Text style={styles.meta}>Department: {paper.department}</Text> : null}
+        <Text style={styles.meta}>Published: {formatDate(paper.published_date || paper.created_at)}</Text>
+        <Text style={styles.meta}>Views: {paper.view_count || 0}</Text>
+        <Text style={styles.meta}>Downloads: {paper.download_count || 0}</Text>
 
-      {keywords.length > 0 ? (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Keywords</Text>
-          <View style={styles.keywordsWrap}>
-            {keywords.map((keyword) => (
-              <Chip key={keyword} variant="status" tone="neutral" label={keyword} />
-            ))}
-          </View>
-        </View>
-      ) : null}
-
-      <View style={styles.actionsRow}>
-        <Button
-          label="Open PDF"
-          variant="primary"
-          onPress={() => openFile(false)}
-          loading={openingFile}
-          disabled={openingFile}
-        />
-        <Button
-          label="Download"
-          variant="secondary"
-          onPress={() => openFile(true)}
-          loading={false}
-          disabled={openingFile}
-        />
-      </View>
-
-      {error ? <InlineNotice tone="danger" message={error} /> : null}
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Abstract</Text>
-        <Text style={styles.body}>{paper.abstract || 'No abstract available.'}</Text>
-      </View>
-
-      {showWorkflow ? (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Workflow History</Text>
-          {workflow.length === 0 ? (
-            <Text style={styles.workflowEmpty}>No workflow history available.</Text>
-          ) : (
-            <View style={styles.workflowList}>
-              {workflow.map((entry) => (
-                <Card
-                  key={entry.id}
-                  padding="sm"
-                  style={styles.workflowCard}
-                >
-                  <Text style={styles.workflowTitle}>
-                    {entry.action_type || entry.status || 'Updated'}
-                  </Text>
-                  <Text style={styles.workflowMeta}>Reviewer role: {entry.reviewer_role || 'N/A'}</Text>
-                  <Text style={styles.workflowMeta}>
-                    {formatRelativeTime(entry.reviewed_at || entry.created_at)}
-                  </Text>
-                  {entry.comments ? <Text style={styles.workflowComment}>{entry.comments}</Text> : null}
-                </Card>
+        {keywords.length > 0 ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Keywords</Text>
+            <View style={styles.keywordsWrap}>
+              {keywords.map((keyword) => (
+                <Chip key={keyword} variant="status" tone="neutral" label={keyword} />
               ))}
             </View>
-          )}
+          </View>
+        ) : null}
+
+        <View style={styles.actionsRow}>
+          <Button
+            label="Open PDF"
+            variant="primary"
+            onPress={() => openFile(false)}
+            loading={openingFile}
+            disabled={openingFile}
+          />
+          <Button
+            label="Download"
+            variant="secondary"
+            onPress={() => openFile(true)}
+            loading={false}
+            disabled={openingFile}
+          />
         </View>
-      ) : null}
-    </ScrollView>
+
+        {error ? <InlineNotice tone="danger" message={error} /> : null}
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Abstract</Text>
+          <Text style={styles.body}>{paper.abstract || 'No abstract available.'}</Text>
+        </View>
+
+        {showWorkflow ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Workflow History</Text>
+            {workflow.length === 0 ? (
+              <Text style={styles.workflowEmpty}>No workflow history available.</Text>
+            ) : (
+              <View style={styles.workflowList}>
+                {workflow.map((entry) => (
+                  <Card
+                    key={entry.id}
+                    padding="sm"
+                    style={styles.workflowCard}
+                  >
+                    <Text style={styles.workflowTitle}>
+                      {entry.action_type || entry.status || 'Updated'}
+                    </Text>
+                    <Text style={styles.workflowMeta}>Reviewer role: {entry.reviewer_role || 'N/A'}</Text>
+                    <Text style={styles.workflowMeta}>
+                      {formatRelativeTime(entry.reviewed_at || entry.created_at)}
+                    </Text>
+                    {entry.comments ? <Text style={styles.workflowComment}>{entry.comments}</Text> : null}
+                  </Card>
+                ))}
+              </View>
+            )}
+          </View>
+        ) : null}
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
