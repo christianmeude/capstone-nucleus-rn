@@ -1,6 +1,6 @@
-# [IN PROGRESS] NUcleus Mobile — Implementation Plan: UI Overhaul
+# [COMPLETED] NUcleus Mobile — Implementation Plan: UI Overhaul
 
-> **STATUS: IN PROGRESS** — Phases 1–9 complete. Phase 10 not started.
+> **STATUS: COMPLETED** — All phases (1–10) complete. Branch `feat/ui-overhaul` ready to merge into `dev`.
 > *This plan describes a UI-only overhaul of the NUcleus Mobile React Native Expo app on branch `feat/ui-overhaul`. It re-grounds every visible surface in the brand identity and the design system defined in [docs/PRODUCT_ROADMAP.md](../PRODUCT_ROADMAP.md), without touching the data layer, navigation contracts, or domain types. The Supabase migration is fully complete and stable; the data path is frozen for the duration of this work.*
 
 **Canonical product context:** [PROJECT_CONTEXT.md](../PROJECT_CONTEXT.md)
@@ -443,11 +443,18 @@ Each phase declares scope, what is explicitly **not** changing, exit criteria, a
 
 ### Phase 10 — Validation and merge
 
-⏳ **NOT STARTED**
+✅ **COMPLETED (stable)**
 
-**What changes and why**
+**What changed and why**
 
-Final guardrail before merging `feat/ui-overhaul` into `dev`. No new code is written in this phase except trivial fixes uncovered during validation.
+Final guardrail before merging `feat/ui-overhaul` into `dev`. No new code was written in this phase except trivial fixes uncovered during validation.
+
+**Validation outcomes**
+
+- ✅ Static validation pass: frozen-layer diff `git diff origin/dev..feat/ui-overhaul -- src/api src/context/AuthContext.tsx src/lib/supabase.ts src/auth src/storage src/types src/navigation/types.ts` returned empty.
+- ✅ `npx tsc --noEmit` — green.
+- ✅ On-device smoke test against the 11 items below — all passing.
+- ✅ Item 7 wording aligned with Issue #8 mitigation (Download UI removed; Open PDF tracks views only).
 
 Smoke-test checklist (must pass on a real device or emulator):
 
@@ -457,7 +464,7 @@ Smoke-test checklist (must pass on a real device or emulator):
 4. **Browse** — list loads, search filters results, category chips filter results, refresh control works, tapping a card opens `ResearchDetail`.
 5. **MyPapers** — list loads, all four filters work, search filters within the active filter, refresh works, tap opens detail.
 6. **Dashboard** — stats compute correctly, recent papers list opens detail, logout works.
-7. **ResearchDetail** — opens from each entry point (Dashboard recents, MyPapers row, Browse row, Notification with `research_id`), abstract and workflow render, "Open PDF" opens the file, "Open + Track Download" opens and increments download count after refresh.
+7. **ResearchDetail** — opens from each entry point (Dashboard recents, MyPapers row, Browse row, Notification with `research_id`), abstract and workflow render, "Open PDF" opens the file and increments view count after refresh.
 8. **Notifications** — list loads, unread count is correct, opening a notification marks it read and navigates to detail when applicable, "Mark all read" clears unread state across the list.
 9. **Invitations** — list loads, counts are correct, accept persists and removes pending state, decline persists and removes pending state, expired pending invitations show as expired and have no action buttons.
 10. **Accessibility spot checks** — TalkBack/VoiceOver on `Login`, `Dashboard`, `MyPapers`, `ResearchDetail`, and `Invitations`. Reduced-motion toggle disables animations.
